@@ -37,8 +37,8 @@ const LogoLoader = ({ fullScreen = false, overlay = false, inline = false, size 
         className={`relative ${size} flex items-center justify-center`}
       >
         <img
-          src="/Homster-logo.png"
-          alt="Loading..."
+          src="/logo-new.jpeg"
+          alt="Cleaning Expert Service"
           className="w-full h-full object-contain"
         />
         {/* Subtle ripple effect */}
