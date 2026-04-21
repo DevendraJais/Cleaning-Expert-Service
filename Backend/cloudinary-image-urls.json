@@ -1,0 +1,109 @@
+{
+  "electrical": {
+    "icon": null,
+    "services": {
+      "home-wiring": [],
+      "electrical-panel-upgrade": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133135/categories/electrical/services/electrical-panel-upgrade/electrical-panel-upgrade.jpg"
+      ],
+      "smart-home-setup": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133138/categories/electrical/services/smart-home-setup/smart-home-setup.jpg"
+      ],
+      "switch-socket": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133139/categories/electrical/services/switch-socket/switch-socket.jpg",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133141/categories/electrical/services/switch-socket/switch-socket2.jpg",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133144/categories/electrical/services/switch-socket/switch-socket3.jpg"
+      ],
+      "fan": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133146/categories/electrical/services/fan/fan.png",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133147/categories/electrical/services/fan/fan21.png"
+      ],
+      "light": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133148/categories/electrical/services/light/light.jpg"
+      ],
+      "wiring": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133149/categories/electrical/services/wiring/wiring.jpg"
+      ],
+      "doorbell": [],
+      "mcb": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133150/categories/electrical/services/mcb/mcb.jpg"
+      ],
+      "inverter": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133151/categories/electrical/services/inverter/invertor.jpg"
+      ]
+    }
+  },
+  "appliance": {
+    "icon": null,
+    "services": {
+      "ac-repair": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133152/categories/appliance/services/ac-repair/ac-repair.jpg"
+      ],
+      "washing-machine-repair": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133153/categories/appliance/services/washing-machine-repair/washing-machine-repair-.jpg"
+      ],
+      "water-heater-repair": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133154/categories/appliance/services/water-heater-repair/water-heater-repair.jpg"
+      ],
+      "refrigerator-repair": []
+    }
+  },
+  "cleaning": {
+    "icon": null,
+    "services": {
+      "bathroom-cleaning": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133156/categories/cleaning/services/bathroom-cleaning/bathroom-cleaning.png",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133158/categories/cleaning/services/bathroom-cleaning/intense-bathroom-2.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133159/categories/cleaning/services/bathroom-cleaning/intense-bathroom-3.webp"
+      ],
+      "carpet-cleaning": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133160/categories/cleaning/services/carpet-cleaning/carpet.jpg"
+      ],
+      "dining-table-cleaning": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133161/categories/cleaning/services/dining-table-cleaning/dining-table.jpg"
+      ],
+      "fan-cleaning": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133162/categories/cleaning/services/fan-cleaning/fan-cleaning.jpg"
+      ]
+    }
+  },
+  "salon-women": {
+    "icon": null,
+    "services": {
+      "facial": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133163/categories/salon-women/services/facial/salon-1.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133166/categories/salon-women/services/facial/salon-2.jpg",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133168/categories/salon-women/services/facial/salon-3.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133172/categories/salon-women/services/facial/salon-4.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133173/categories/salon-women/services/facial/salon-5.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133174/categories/salon-women/services/facial/salon-6.jpg",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133175/categories/salon-women/services/facial/koreanfacial.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133176/categories/salon-women/services/facial/signature-facial.webp"
+      ],
+      "cleanup": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133178/categories/salon-women/services/cleanup/cleanup.webp"
+      ],
+      "spa": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133180/categories/salon-women/services/spa/spa-banner.jpg"
+      ],
+      "waxing": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133183/categories/salon-women/services/waxing/waxing.webp"
+      ]
+    }
+  },
+  "salon-men": {
+    "icon": null,
+    "services": {
+      "massage": [
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133188/categories/salon-men/services/massage/men-banner.jpg",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133190/categories/salon-men/services/massage/men-banner-2.jpg",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133193/categories/salon-men/services/massage/men-banner-3.jpg",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133195/categories/salon-men/services/massage/back-pain.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133196/categories/salon-men/services/massage/leg-pain.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133197/categories/salon-men/services/massage/pain-relief.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133199/categories/salon-men/services/massage/post-workout.webp",
+        "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766133202/categories/salon-men/services/massage/stress-relief.webp"
+      ]
+    }
+  }
+}

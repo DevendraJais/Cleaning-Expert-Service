@@ -1,0 +1,67 @@
+{
+  "electricity": {
+    "icon": null,
+    "serviceImages": [
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135138/Homster/electricity/service/home-wiring.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135139/Homster/electricity/service/electrical-panel-upgrade.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135140/Homster/electricity/service/smart-home-setup.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135141/Homster/electricity/service/switch-socket.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135142/Homster/electricity/service/switch-socket2.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135143/Homster/electricity/service/switch-socket3.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135144/Homster/electricity/service/fan.png",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135145/Homster/electricity/service/fan21.png",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135146/Homster/electricity/service/light.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135147/Homster/electricity/service/wiring.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135149/Homster/electricity/service/mcb.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135150/Homster/electricity/service/invertor.jpg"
+    ]
+  },
+  "appliance": {
+    "icon": null,
+    "serviceImages": [
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135151/Homster/appliance/service/ac-repair.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135152/Homster/appliance/service/washing-machine-repair-.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135154/Homster/appliance/service/water-heater-repair.jpg"
+    ]
+  },
+  "cleaning": {
+    "icon": null,
+    "serviceImages": [
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135156/Homster/cleaning/service/bathroom-cleaning.png",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135157/Homster/cleaning/service/intense-bathroom-2.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135159/Homster/cleaning/service/intense-bathroom-3.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135160/Homster/cleaning/service/carpet.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135161/Homster/cleaning/service/dining-table.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135165/Homster/cleaning/service/fan-cleaning.jpg"
+    ]
+  },
+  "salon-women": {
+    "icon": null,
+    "serviceImages": [
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135167/Homster/salon-women/service/salon-1.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135168/Homster/salon-women/service/salon-2.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135169/Homster/salon-women/service/salon-3.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135170/Homster/salon-women/service/salon-4.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135171/Homster/salon-women/service/salon-5.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135172/Homster/salon-women/service/salon-6.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135173/Homster/salon-women/service/cleanup.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135174/Homster/salon-women/service/koreanfacial.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135175/Homster/salon-women/service/signature-facial.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135176/Homster/salon-women/service/spa-banner.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135177/Homster/salon-women/service/waxing.webp"
+    ]
+  },
+  "salon-men": {
+    "icon": null,
+    "serviceImages": [
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135178/Homster/salon-men/service/men-banner.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135180/Homster/salon-men/service/men-banner-2.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135181/Homster/salon-men/service/men-banner-3.jpg",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135182/Homster/salon-men/service/back-pain.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135183/Homster/salon-men/service/leg-pain.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135185/Homster/salon-men/service/pain-relief.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135187/Homster/salon-men/service/post-workout.webp",
+      "https://res.cloudinary.com/shubhamcloudinary/image/upload/v1766135188/Homster/salon-men/service/stress-relief.webp"
+    ]
+  }
+}

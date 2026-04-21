@@ -1,0 +1,42 @@
+# Implementation Plan - Flutter JS Bridge
+
+This plan outlines the integration of a production-ready JavaScript bridge to communicate between the React web app and the Flutter InAppWebView wrapper. This will provide a more stable and extensible way to access native features like the camera.
+
+## Proposed Changes
+
+### [Frontend Utilities]
+#### [NEW] [flutterBridge.js](file:///c:/Users/SHUBHAM/Desktop/Homster/Frontend/src/utils/flutterBridge.js)
+Create a singleton utility class to handle:
+- Detecting the Flutter environment.
+- Providing a promise-based `waitForFlutter` listener.
+- Generic `callHandler` for arbitrary native calls.
+- Specific `openCamera` wrapper that returns a standard [File](file:///c:/Users/SHUBHAM/Desktop/Homster/Frontend/src/modules/vendor/components/common/ImageUploader.jsx#15-62) object from Base64 data.
+
+### [Frontend Components]
+
+#### [MODIFY] [WorkCompletionModal.jsx](file:///c:/Users/SHUBHAM/Desktop/Homster/Frontend/src/modules/worker/components/common/WorkCompletionModal.jsx)
+- Import `flutterBridge`.
+- Replace direct `<input type="file" />` behavior with a `handleNativeCamera` trigger.
+
+#### [MODIFY] [ImageUploader.jsx](file:///c:/Users/SHUBHAM/Desktop/Homster/Frontend/src/modules/vendor/components/common/ImageUploader.jsx)
+- Import `flutterBridge`.
+- Add a toggle for Native Camera in the upload UI if in Flutter environment.
+- Use `flutterBridge.openCamera()` to get standard [File](file:///c:/Users/SHUBHAM/Desktop/Homster/Frontend/src/modules/vendor/components/common/ImageUploader.jsx#15-62) objects.
+
+#### [MODIFY] [BookingDetails/index.jsx](file:///c:/Users/SHUBHAM/Desktop/Homster/Frontend/src/modules/vendor/pages/BookingDetails/index.jsx) (Audit)
+- Review any native-like triggers (e.g., location tracking enhancements) to see if they should move to the bridge pattern.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Flutter-Side Requirements**:
+> For this bridge to work, the Flutter developer MUST implement the following:
+> 1. **JavaScript Handler**: Register `openCamera` in the `InAppWebViewController`.
+> 2. **Ready Event**: Dispatch `flutterInAppWebViewPlatformReady` in the `onLoadStop` callback.
+> 3. **Base64 Response**: Ensure the native `openCamera` returns a JSON object with `success`, `mimeType`, `base64`, and `fileName`.
+
+## Verification Plan
+
+### Manual Verification
+- **Browser Testing**: Ensure the app continues to work in standard Chrome/Edge (fallback to standard file input).
+- **Flutter Testing**: (To be performed by the user) Verify that clicking "Add / Cam" successfully opens the native camera and returns the image as a preview in the modal.
