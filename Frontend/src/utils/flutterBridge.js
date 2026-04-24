@@ -149,3 +149,4 @@ class FlutterBridge {
 const bridgeInstance = new FlutterBridge();
 export default bridgeInstance;
 export const flutterBridge = bridgeInstance;
+

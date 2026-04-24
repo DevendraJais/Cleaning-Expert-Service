@@ -97,3 +97,4 @@ const RevenueVsBookingsChart = ({ data, period = 'month' }) => {
 export default RevenueVsBookingsChart;
 
 
+

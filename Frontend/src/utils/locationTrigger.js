@@ -23,3 +23,4 @@ export const withLocation = (callback) => {
   // 2. Trigger the check
   triggerLocationPrompt();
 };
+

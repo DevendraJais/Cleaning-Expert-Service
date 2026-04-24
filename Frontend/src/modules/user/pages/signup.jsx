@@ -6,6 +6,7 @@ import { themeColors } from '../../../theme';
 import { userAuthService } from '../../../services/authService';
 import Logo from '../../../components/common/Logo';
 import LogoLoader from '../../../components/common/LogoLoader';
+import signupTeamImg from '../../../assets/images/signup-team.png';
 
 import { z } from "zod";
 
@@ -223,6 +224,17 @@ const Signup = () => {
         <p className="mt-2 text-sm text-gray-600 animate-stagger-1 animate-fade-in">
           {step === 'details' ? 'Join Truliq to start booking services' : `We've sent a 6-digit code to ${formData.phoneNumber}`}
         </p>
+
+        {/* Premium Team Illustration */}
+        {step === 'details' && (
+          <div className="mt-6 flex justify-center">
+            <img 
+              src={signupTeamImg} 
+              alt="Our Team" 
+              className="w-56 h-auto rounded-2xl shadow-xl border border-gray-100"
+            />
+          </div>
+        )}
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0 relative z-10">
@@ -318,8 +330,8 @@ const Signup = () => {
                   disabled={isLoading}
                   className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white transition-all duration-500 shadow-lg hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed  overflow-hidden"
                   style={{
-                    backgroundColor: brandColor,
-                    boxShadow: `0 10px 15px -3px ${brandColor}4D`
+                    backgroundColor: '#000000',
+                    boxShadow: `0 10px 15px -3px rgba(0, 0, 0, 0.3)`
                   }}
                 >
                   <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:translate-x-full transition-transform duration-700 -translate-x-full" />
@@ -398,8 +410,8 @@ const Signup = () => {
                     disabled={isLoading || otp.join('').length !== 6}
                     className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white transition-all duration-500 shadow-lg hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed  overflow-hidden"
                     style={{
-                      backgroundColor: brandColor,
-                      boxShadow: `0 10px 15px -3px ${brandColor}4D`
+                      backgroundColor: '#000000',
+                      boxShadow: `0 10px 15px -3px rgba(0, 0, 0, 0.3)`
                     }}
                   >
                     <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:translate-x-full transition-transform duration-700 -translate-x-full" />
@@ -430,3 +442,4 @@ const Signup = () => {
 };
 
 export default Signup;
+

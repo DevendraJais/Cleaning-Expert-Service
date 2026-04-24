@@ -31,3 +31,4 @@ const Banner = React.memo(({ imageUrl, onClick }) => {
 Banner.displayName = 'Banner';
 
 export default Banner;
+

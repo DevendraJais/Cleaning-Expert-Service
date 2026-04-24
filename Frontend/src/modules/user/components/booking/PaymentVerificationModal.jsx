@@ -307,3 +307,4 @@ const PaymentVerificationModal = ({ isOpen, onClose, booking, onPayOnline }) => 
 };
 
 export default PaymentVerificationModal;
+

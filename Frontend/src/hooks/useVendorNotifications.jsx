@@ -87,3 +87,4 @@ export const useVendorNotifications = (vendorId, onNewBooking) => {
 };
 
 export default useVendorNotifications;
+

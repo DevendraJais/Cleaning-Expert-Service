@@ -124,3 +124,4 @@ const PublicRoute = ({ children, userType = 'user', redirectTo = null }) => {
 
 export default PublicRoute;
 
+

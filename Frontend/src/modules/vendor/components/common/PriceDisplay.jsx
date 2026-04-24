@@ -23,3 +23,4 @@ const PriceDisplay = ({ amount, currency = '₹', size = 'md', showDecimals = fa
 
 export default PriceDisplay;
 
+

@@ -296,3 +296,4 @@ const CategoryCart = ({
 };
 
 export default CategoryCart;
+

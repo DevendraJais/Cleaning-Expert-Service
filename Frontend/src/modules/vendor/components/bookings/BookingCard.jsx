@@ -98,3 +98,4 @@ const BookingCard = ({ booking, onClick }) => {
 
 export default BookingCard;
 
+

@@ -94,3 +94,4 @@ const ScanAndPayModal = ({
 };
 
 export default ScanAndPayModal;
+

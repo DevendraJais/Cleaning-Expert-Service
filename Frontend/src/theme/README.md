@@ -55,3 +55,4 @@ All components using `themeColors` will automatically update!
 - `button` - Button color (#00a6a6)
 - `icon` - Icon color (#29ad81)
 
+

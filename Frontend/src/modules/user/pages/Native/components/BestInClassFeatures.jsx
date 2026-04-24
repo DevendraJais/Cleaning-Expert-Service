@@ -85,3 +85,4 @@ const BestInClassFeatures = ({ onFeatureClick }) => {
 
 export default BestInClassFeatures;
 
+

@@ -298,3 +298,4 @@ const BookingAlertModal = ({ isOpen, booking, bookings, onAccept, onReject, onAs
 };
 
 export default BookingAlertModal;
+

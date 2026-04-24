@@ -262,3 +262,4 @@ const BookingAlerts = () => {
 };
 
 export default BookingAlerts;
+

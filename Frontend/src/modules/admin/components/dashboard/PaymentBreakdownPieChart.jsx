@@ -66,3 +66,4 @@ const PaymentBreakdownPieChart = ({ bookings = [] }) => {
 export default PaymentBreakdownPieChart;
 
 
+

@@ -10,3 +10,4 @@ export const initWorkerDummyData = () => {
   // Disabled - data fetched from backend
   console.log('Worker dummy data disabled. Use API: GET /api/workers/profile');
 };
+

@@ -73,3 +73,4 @@ const ReviewCard = ({ booking, onWriteReview }) => {
 };
 
 export default ReviewCard;
+

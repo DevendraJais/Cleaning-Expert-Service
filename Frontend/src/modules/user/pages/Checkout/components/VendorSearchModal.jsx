@@ -173,3 +173,4 @@ const VendorSearchModal = ({ isOpen, onClose, currentStep, acceptedVendor, onRet
 };
 
 export default VendorSearchModal;
+

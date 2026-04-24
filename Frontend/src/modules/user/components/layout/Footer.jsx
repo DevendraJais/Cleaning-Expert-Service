@@ -28,7 +28,7 @@ const Footer = () => {
     {
       title: 'Company',
       links: [
-        { label: 'About Us', path: '/user/about-homestr' },
+        { label: 'About Us', path: '/user/about-Truliq' },
         { label: 'Help & Support', path: '/user/help-support' },
         { label: 'Cancellation Policy', path: '/user/cancellation-policy' },
         { label: 'Terms & Conditions', path: '#' },
@@ -147,3 +147,4 @@ const Footer = () => {
 };
 
 export default Footer;
+

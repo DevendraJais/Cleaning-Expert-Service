@@ -67,3 +67,4 @@ const NativeSmartLocks = ({ onKnowMoreClick }) => {
 
 export default NativeSmartLocks;
 
+

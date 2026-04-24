@@ -225,3 +225,4 @@ const WorkCompletionModal = ({ isOpen, onClose, job, onComplete, loading }) => {
 };
 
 export default WorkCompletionModal;
+

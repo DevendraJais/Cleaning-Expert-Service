@@ -579,3 +579,4 @@ const BrandsPage = ({ catalog, setCatalog, selectedCity }) => {
 };
 
 export default BrandsPage;
+

@@ -98,3 +98,4 @@ const BannerWithRefer = ({ imageUrl, onBannerClick, onReferClick }) => {
 
 export default BannerWithRefer;
 
+

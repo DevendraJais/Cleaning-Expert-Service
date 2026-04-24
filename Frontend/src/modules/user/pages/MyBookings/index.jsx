@@ -207,10 +207,9 @@ const MyBookings = () => {
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
                 className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 border ${filter === tab.id
-                  ? 'border-transparent text-white shadow-lg shadow-blue-500/25 active:scale-95'
+                  ? 'border-black bg-black text-white shadow-lg shadow-black/10 active:scale-95'
                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300'
                   }`}
-                style={filter === tab.id ? { backgroundColor: themeColors.button } : {}}
               >
                 {tab.label}
               </button>
@@ -401,4 +400,5 @@ const MyBookings = () => {
 };
 
 export default MyBookings;
+
 

@@ -112,3 +112,4 @@ const ServiceCategoriesGrid = ({ categories = [], onCategoryClick, layout = 'gri
 
 export default ServiceCategoriesGrid;
 
+

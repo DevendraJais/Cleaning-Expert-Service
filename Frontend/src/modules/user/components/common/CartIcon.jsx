@@ -21,3 +21,4 @@ const CartIcon = ({ itemCount = 0, onClick }) => {
 
 export default CartIcon;
 
+

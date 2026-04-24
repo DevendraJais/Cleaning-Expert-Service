@@ -146,3 +146,4 @@ const BannerSection = ({ banners = [], onBack, onSearch, onShare, showStickyNav 
 
 export default BannerSection;
 
+

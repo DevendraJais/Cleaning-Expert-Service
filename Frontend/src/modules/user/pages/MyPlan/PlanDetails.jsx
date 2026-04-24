@@ -433,7 +433,7 @@ const PlanDetails = () => {
             </p>
           </div>
           <p className="text-center text-gray-300 text-[10px] uppercase font-bold tracking-widest pb-10">
-            Homestr Subscription • Secure & Trusted
+            Truliq Subscription • Secure & Trusted
           </p>
         </div>
       </div>
@@ -442,3 +442,4 @@ const PlanDetails = () => {
 };
 
 export default PlanDetails;
+

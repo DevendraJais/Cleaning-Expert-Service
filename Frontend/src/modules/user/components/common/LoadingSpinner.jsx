@@ -13,3 +13,4 @@ const LoadingSpinner = ({ fullScreen = true, message = 'Loading...' }) => {
 };
 
 export default LoadingSpinner;
+

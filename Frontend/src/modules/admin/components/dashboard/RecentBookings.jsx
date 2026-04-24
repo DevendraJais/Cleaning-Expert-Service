@@ -109,3 +109,4 @@ const RecentBookings = ({ bookings = [], onViewBooking }) => {
 export default RecentBookings;
 
 
+

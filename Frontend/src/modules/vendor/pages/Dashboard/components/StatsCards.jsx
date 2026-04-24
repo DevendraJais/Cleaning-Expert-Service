@@ -96,3 +96,4 @@ const StatsCards = memo(({ stats }) => {
 StatsCards.displayName = 'VendorStatsCards';
 
 export default StatsCards;
+

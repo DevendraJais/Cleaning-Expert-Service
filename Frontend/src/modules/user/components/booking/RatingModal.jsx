@@ -154,3 +154,4 @@ const RatingModal = ({ isOpen, onClose, onSubmit, bookingName, workerName }) => 
 };
 
 export default RatingModal;
+

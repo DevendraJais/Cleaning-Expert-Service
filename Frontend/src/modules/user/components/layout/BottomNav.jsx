@@ -202,3 +202,4 @@ const BottomNav = React.memo(() => {
 BottomNav.displayName = 'BottomNav';
 
 export default BottomNav;
+

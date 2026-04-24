@@ -14,7 +14,7 @@ const HelpSupport = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [showContactForm, setShowContactForm] = useState(false);
   const [supportInfo, setSupportInfo] = useState({
-    email: 'support@homestr.com',
+    email: 'support@Truliq.com',
     phone: '',
     whatsapp: ''
   });
@@ -26,7 +26,7 @@ const HelpSupport = () => {
         if (response.data?.success && response.data?.settings) {
           const { supportEmail, supportPhone, supportWhatsapp } = response.data.settings;
           setSupportInfo({
-            email: supportEmail || 'support@homestr.com',
+            email: supportEmail || 'support@Truliq.com',
             phone: supportPhone || '',
             whatsapp: supportWhatsapp || ''
           });
@@ -417,3 +417,4 @@ const HelpSupport = () => {
 };
 
 export default HelpSupport;
+

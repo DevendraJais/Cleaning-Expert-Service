@@ -35,3 +35,4 @@ export const getUserGrowthMetrics = async (days = 30) => {
     throw error;
   }
 };
+

@@ -237,3 +237,4 @@ const WorkerPaymentModal = ({ isOpen, onClose, workerName, amountDue = 0, onConf
 };
 
 export default WorkerPaymentModal;
+

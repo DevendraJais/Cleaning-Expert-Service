@@ -42,3 +42,4 @@ const ServiceTypeBadge = ({ serviceType, size = 'md' }) => {
 
 export default ServiceTypeBadge;
 
+

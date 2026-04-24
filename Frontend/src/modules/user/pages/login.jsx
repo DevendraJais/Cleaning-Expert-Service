@@ -7,6 +7,7 @@ import { userAuthService } from '../../../services/authService';
 import Logo from '../../../components/common/Logo';
 import LogoLoader from '../../../components/common/LogoLoader';
 import DebugConsole from '../components/common/DebugConsole';
+import serviceProvidersImg from '../../../assets/images/service-providers.png';
 
 import { z } from "zod";
 
@@ -194,6 +195,17 @@ const Login = () => {
             : `We've sent a code to +91 ${phoneNumber}`
           }
         </p>
+
+        {/* Premium Service Providers Illustration */}
+        {step === 'phone' && (
+          <div className="mt-6 flex justify-center">
+            <img 
+              src={serviceProvidersImg} 
+              alt="Service Providers" 
+              className="w-56 h-auto rounded-2xl shadow-xl border border-gray-100"
+            />
+          </div>
+        )}
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0 relative z-10">
@@ -235,8 +247,8 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={isLoading || phoneNumber.length < 10}
-                  className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-bold text-white transition-all duration-500 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#347989] disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-1 transform shadow-lg shadow-[#347989]/30 hover:shadow-[#347989]/40 overflow-hidden"
-                  style={{ backgroundColor: brandColor }}
+                  className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-bold text-white transition-all duration-500 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-1 transform shadow-lg shadow-black/20 hover:shadow-black/40 overflow-hidden"
+                  style={{ backgroundColor: '#000000' }}
                 >
                   <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:translate-x-full transition-transform duration-700 -translate-x-full" />
                   {isLoading ? (
@@ -362,3 +374,4 @@ const Login = () => {
 };
 
 export default Login;
+

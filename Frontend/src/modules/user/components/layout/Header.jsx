@@ -80,7 +80,7 @@ const Header = ({ location, onLocationClick }) => {
                 <div className="flex items-center gap-1 mb-0.5">
                   {/* Gradient Definition for Icons */}
                   <svg width="0" height="0" className="absolute">
-                    <linearGradient id="homestr-location-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <linearGradient id="Truliq-location-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor={themeColors.brand.teal} />
                       <stop offset="50%" stopColor={themeColors.brand.yellow} />
                       <stop offset="100%" stopColor={themeColors.brand.orange} />
@@ -88,7 +88,7 @@ const Header = ({ location, onLocationClick }) => {
                   </svg>
                   <HiLocationMarker
                     className="w-4 h-4 shrink-0"
-                    style={{ fill: 'url(#homestr-location-gradient)' }}
+                    style={{ fill: 'url(#Truliq-location-gradient)' }}
                   />
                   <span className="text-sm font-bold truncate max-w-[160px]" style={{
                     background: themeColors.gradient,
@@ -117,3 +117,4 @@ const Header = ({ location, onLocationClick }) => {
 };
 
 export default Header;
+

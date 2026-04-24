@@ -176,3 +176,4 @@ const PendingJobCard = ({ booking, onAccept, onReject, onClick, loadingAction, s
 };
 
 export default PendingJobCard;
+

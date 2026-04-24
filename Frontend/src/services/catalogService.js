@@ -342,3 +342,4 @@ export const publicCatalogService = {
     apiCache.invalidatePrefix('public:');
   }
 };
+

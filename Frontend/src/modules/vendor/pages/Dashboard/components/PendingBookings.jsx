@@ -99,3 +99,4 @@ const PendingBookings = memo(({ bookings, setPendingBookings, setActiveAlertBook
 PendingBookings.displayName = 'VendorPendingBookings';
 
 export default PendingBookings;
+

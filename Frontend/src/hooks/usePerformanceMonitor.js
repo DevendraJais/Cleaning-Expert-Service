@@ -59,3 +59,4 @@ const usePerformanceMonitor = (componentName, props = {}) => {
 };
 
 export default usePerformanceMonitor;
+

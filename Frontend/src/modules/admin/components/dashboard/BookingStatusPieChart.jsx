@@ -84,3 +84,4 @@ const BookingStatusPieChart = ({ bookings = [] }) => {
 export default BookingStatusPieChart;
 
 
+

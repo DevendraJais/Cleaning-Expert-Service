@@ -58,8 +58,8 @@ messaging.onBackgroundMessage((payload) => {
   notificationTitle = notificationTitle || 'App Notification';
   notificationBody = notificationBody || 'You have a new update.';
 
-  let icon = data.icon || notification.icon || '/Homster-logo.png';
-  let badge = '/Homster-logo.png';
+  let icon = data.icon || notification.icon || '/truliq-logo.png';
+  let badge = '/truliq-logo.png';
   let tag = data.bookingId || `notification-${Date.now()}`;
   let requireInteraction = false;
   let vibrate = [200, 100, 200];

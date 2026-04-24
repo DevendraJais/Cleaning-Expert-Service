@@ -40,3 +40,4 @@ const ProfessionalCard = ({ image, onClick }) => {
 
 export default ProfessionalCard;
 
+

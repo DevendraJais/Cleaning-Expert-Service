@@ -113,7 +113,7 @@ const NotificationBell = ({ notificationCount = 0 }) => {
         }}
       >
         <svg width="0" height="0" className="absolute">
-          <linearGradient id="homestr-bell-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id="Truliq-bell-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={themeColors.brand.teal} />
             <stop offset="50%" stopColor={themeColors.brand.yellow} />
             <stop offset="100%" stopColor={themeColors.brand.orange} />
@@ -124,7 +124,7 @@ const NotificationBell = ({ notificationCount = 0 }) => {
           ref={bellRef}
           className="w-5 h-5 transition-all duration-300"
           style={{
-            stroke: count > 0 ? '#EF4444' : 'url(#homestr-bell-gradient)',
+            stroke: count > 0 ? '#EF4444' : 'url(#Truliq-bell-gradient)',
             strokeWidth: '2.5',
             color: 'transparent',
             filter: count > 0
@@ -153,3 +153,4 @@ const NotificationBell = ({ notificationCount = 0 }) => {
 };
 
 export default NotificationBell;
+

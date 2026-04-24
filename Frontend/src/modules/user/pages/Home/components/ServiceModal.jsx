@@ -129,3 +129,4 @@ const ServiceModal = ({ isOpen, onClose, service, location, cartCount }) => {
 
 export default ServiceModal;
 
+

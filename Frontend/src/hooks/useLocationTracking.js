@@ -160,3 +160,4 @@ export const useLocationTracking = (socket, bookingId, isActive, options = {}) =
 };
 
 export default useLocationTracking;
+

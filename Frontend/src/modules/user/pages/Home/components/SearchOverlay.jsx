@@ -330,3 +330,4 @@ const SearchOverlay = ({ isOpen, onClose, categories = [], onCategoryClick }) =>
 };
 
 export default SearchOverlay;
+

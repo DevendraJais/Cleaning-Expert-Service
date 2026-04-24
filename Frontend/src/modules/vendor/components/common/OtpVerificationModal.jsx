@@ -105,3 +105,4 @@ const OtpVerificationModal = ({ isOpen, onClose, onVerify, loading }) => {
 };
 
 export default OtpVerificationModal;
+

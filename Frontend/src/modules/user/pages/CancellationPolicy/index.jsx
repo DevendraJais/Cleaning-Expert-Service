@@ -154,3 +154,4 @@ const CancellationPolicy = () => {
 };
 
 export default CancellationPolicy;
+

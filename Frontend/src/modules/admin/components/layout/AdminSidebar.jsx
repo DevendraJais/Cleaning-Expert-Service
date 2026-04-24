@@ -20,6 +20,7 @@ import {
 } from "react-icons/fi";
 import adminMenu from "../../config/adminMenu.json";
 import dashboardService from "../../services/dashboardService";
+import Logo from "../../../../components/common/Logo";
 
 // Icon mapping for menu items
 const iconMap = {
@@ -383,13 +384,8 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       <div className="px-4 py-6 border-b border-slate-700 bg-slate-900">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
-              style={{
-                background: 'linear-gradient(135deg, #2874F0 0%, #4787F7 100%)',
-              }}
-            >
-              <FiUser className="text-white text-xl" />
+            <div className="flex items-center justify-center p-1 bg-white/10 rounded-xl">
+              <Logo className="h-10 w-auto" />
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-white text-base truncate">
@@ -460,4 +456,5 @@ const AdminSidebar = ({ isOpen, onClose }) => {
 };
 
 export default AdminSidebar;
+
 

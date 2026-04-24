@@ -228,3 +228,4 @@ const LiveBookingCard = ({ hasBottomNav }) => {
 };
 
 export default LiveBookingCard;
+

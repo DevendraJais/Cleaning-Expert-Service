@@ -20,3 +20,4 @@ export const useLocationPrompt = () => {
 
   return { trigger, requestLocation };
 };
+

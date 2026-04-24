@@ -41,3 +41,4 @@ export const useScrollAnimation = (animationFn, dependencies = []) => {
   return elementRef;
 };
 
+

@@ -56,3 +56,4 @@ const BookingStatusIndicator = ({ status, currentStage, stage }) => {
 
 export default BookingStatusIndicator;
 
+

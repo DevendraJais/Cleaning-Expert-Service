@@ -48,3 +48,4 @@ const PromoCard = memo(({ title, subtitle, buttonText, image, onClick, className
 PromoCard.displayName = 'PromoCard';
 
 export default PromoCard;
+

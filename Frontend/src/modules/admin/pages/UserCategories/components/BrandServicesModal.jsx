@@ -240,3 +240,4 @@ const BrandServicesModal = ({ isOpen, onClose, brand }) => {
 };
 
 export default BrandServicesModal;
+

@@ -267,7 +267,7 @@ const WorkerSignup = () => {
       const response = await workerAuthService.register(registerData);
       if (response.success) {
         setIsLoading(false);
-        toast.success('Registration successful! Welcome to Homestr.');
+        toast.success('Registration successful! Welcome to Truliq.');
         navigate('/worker');
       } else {
         setIsLoading(false);
@@ -534,3 +534,4 @@ const WorkerSignup = () => {
 };
 
 export default WorkerSignup;
+

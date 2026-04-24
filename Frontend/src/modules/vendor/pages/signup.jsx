@@ -7,6 +7,7 @@ import { register, sendOTP as sendVendorOTP } from '../services/authService';
 import LogoLoader from '../../../components/common/LogoLoader';
 import Logo from '../../../components/common/Logo';
 import { compressImage } from '../../../utils/imageCompression';
+import signupTeamImg from '../../../assets/images/signup-team.png';
 
 import { z } from "zod";
 
@@ -348,8 +349,19 @@ const VendorSignup = () => {
           {step === 'details' ? 'Vendor Registration' : 'Verify Identity'}
         </h2>
         <p className="mt-2 text-sm text-gray-600 animate-stagger-1 animate-fade-in">
-          Partner with Homestr and grow your business
+          Partner with Truliq and grow your business
         </p>
+
+        {/* Premium Service Illustration */}
+        {step === 'details' && (
+          <div className="mt-6 flex justify-center">
+            <img 
+              src={signupTeamImg} 
+              alt="Service Excellence" 
+              className="w-64 h-auto rounded-2xl shadow-xl border border-gray-100"
+            />
+          </div>
+        )}
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-2xl relative z-10">
@@ -558,7 +570,7 @@ const VendorSignup = () => {
 
                   <div className="p-4 bg-teal-50 border border-teal-100 rounded-xl mt-4 animate-pulse-subtle">
                     <p className="text-xs text-teal-700 leading-relaxed italic">
-                      "Homestr values trust. Please ensure all documents are clear and valid for faster approval."
+                      "Truliq values trust. Please ensure all documents are clear and valid for faster approval."
                     </p>
                   </div>
                 </div>
@@ -570,8 +582,8 @@ const VendorSignup = () => {
                   disabled={isLoading}
                   className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-base font-bold rounded-xl text-white transition-all transform hover:-translate-y-1 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
                   style={{
-                    backgroundColor: brandColor,
-                    boxShadow: `0 10px 15px -3px ${brandColor}4D`
+                    backgroundColor: '#000000',
+                    boxShadow: `0 10px 15px -3px rgba(0, 0, 0, 0.3)`
                   }}
                 >
                   <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:translate-x-full transition-transform duration-700 -translate-x-full" />
@@ -647,7 +659,7 @@ const VendorSignup = () => {
                     type="submit"
                     disabled={isLoading || otp.join('').length !== 6}
                     className="group relative w-full py-4 rounded-xl text-white font-bold transition-all transform hover:-translate-y-1 shadow-lg disabled:opacity-50 overflow-hidden"
-                    style={{ backgroundColor: brandColor, boxShadow: `0 10px 15px -3px ${brandColor}4D` }}
+                    style={{ backgroundColor: '#000000', boxShadow: `0 10px 15px -3px rgba(0, 0, 0, 0.3)` }}
                   >
                     <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:translate-x-full transition-transform duration-700 -translate-x-full" />
                     <span className="relative z-10 flex items-center justify-center">
@@ -676,3 +688,4 @@ const VendorSignup = () => {
 };
 
 export default VendorSignup;
+

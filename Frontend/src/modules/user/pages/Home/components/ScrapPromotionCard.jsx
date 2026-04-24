@@ -15,13 +15,13 @@ const ScrapPromotionCard = ({ onClick }) => {
       <div 
         className="absolute inset-0 z-0 transition-transform duration-700 group-hover:scale-110"
         style={{
-          background: `linear-gradient(135deg, ${themeColors.brand.teal} 0%, #1a4d5e 100%)`
+          background: themeColors.brand.gradient
         }}
       />
       
       {/* Animated Decorative Circle */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse" />
-      <div className="absolute bottom-0 left-0 w-40 h-40 bg-teal-400/20 rounded-full -ml-20 -mb-20 blur-2xl transition-all duration-500 group-hover:bg-teal-400/30" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse" />
+      <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/10 rounded-full -ml-20 -mb-20 blur-2xl transition-all duration-500 group-hover:bg-white/20" />
 
       <div className="relative z-10 p-6 lg:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex-1 text-center md:text-left">
@@ -29,13 +29,13 @@ const ScrapPromotionCard = ({ onClick }) => {
             <FiRefreshCw className="animate-spin-slow" />
             <span>Eco-Friendly Service</span>
           </div>
-          
+
           <h2 className="text-2xl lg:text-3xl font-black text-white mb-2 leading-tight">
             Turn Your <span className="text-teal-300">Scrap</span> into <br className="hidden md:block" />
             Instant <span className="text-amber-400">Cash</span>
           </h2>
-          
-          <p className="text-teal-50/80 text-sm lg:text-base font-medium max-w-md mb-6 mx-auto md:mx-0">
+
+          <p className="text-gray-100 text-sm lg:text-base font-medium max-w-md mb-6 mx-auto md:mx-0">
             Accepting paper, plastic, metal, and electronics at best prices. We pick up directly from your doorstep.
           </p>
 
@@ -60,10 +60,10 @@ const ScrapPromotionCard = ({ onClick }) => {
         <div className="relative hidden sm:block">
           <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full scale-110" />
           <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center relative overflow-hidden group-hover:rotate-3 transition-transform duration-500">
-             <div className="text-6xl lg:text-7xl drop-shadow-2xl">♻️</div>
-             {/* Floating mini elements */}
-             <div className="absolute top-2 left-2 animate-bounce-slow text-2xl">💰</div>
-             <div className="absolute bottom-4 right-2 animate-bounce-slower text-2xl">📦</div>
+            <div className="text-6xl lg:text-7xl drop-shadow-2xl">♻️</div>
+            {/* Floating mini elements */}
+            <div className="absolute top-2 left-2 animate-bounce-slow text-2xl">💰</div>
+            <div className="absolute bottom-4 right-2 animate-bounce-slower text-2xl">📦</div>
           </div>
         </div>
       </div>
@@ -72,3 +72,4 @@ const ScrapPromotionCard = ({ onClick }) => {
 };
 
 export default ScrapPromotionCard;
+

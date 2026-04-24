@@ -150,3 +150,4 @@ const BookingNotifications = () => {
 };
 
 export default BookingNotifications;
+

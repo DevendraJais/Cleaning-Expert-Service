@@ -2344,3 +2344,4 @@ const HomePage = ({ catalog, setCatalog, selectedCity }) => {
 };
 
 export default HomePage;
+

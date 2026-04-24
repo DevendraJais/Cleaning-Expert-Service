@@ -205,3 +205,4 @@ const WorkerJobAlertModal = ({ isOpen, jobId, onClose, onJobAccepted }) => {
 };
 
 export default WorkerJobAlertModal;
+

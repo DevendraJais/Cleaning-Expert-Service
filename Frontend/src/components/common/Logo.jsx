@@ -20,3 +20,4 @@ const Logo = forwardRef(({ className = "h-9 sm:h-12 w-auto", ...props }, ref) =>
 Logo.displayName = 'Logo';
 
 export default Logo;
+

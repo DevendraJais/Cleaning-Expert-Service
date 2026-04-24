@@ -453,3 +453,4 @@ const AddScrap = () => {
 };
 
 export default AddScrap;
+

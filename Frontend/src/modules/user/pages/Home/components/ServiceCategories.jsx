@@ -36,7 +36,7 @@ const ServiceCategories = React.memo(({ categories, onCategoryClick, onSeeAllCli
             Service Categories
             <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(40,116,240,0.5)]"></div>
           </h2>
-          <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.15em] -mt-0.5">Premium Home Services</p>
+          <p className="text-[11px] text-gray-600 font-bold uppercase tracking-[0.05em] -mt-0.5">Premium Home Services</p>
         </div>
 
       </div>
@@ -76,4 +76,5 @@ const ServiceCategories = React.memo(({ categories, onCategoryClick, onSeeAllCli
 ServiceCategories.displayName = 'ServiceCategories';
 
 export default ServiceCategories;
+
 

@@ -256,3 +256,4 @@ export const ensureIds = (catalog) => {
   };
   return withIds;
 };
+

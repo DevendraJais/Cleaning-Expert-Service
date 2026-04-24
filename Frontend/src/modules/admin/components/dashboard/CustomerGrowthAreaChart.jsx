@@ -136,3 +136,4 @@ const CustomerGrowthAreaChart = ({ timelineData = [], bookings = [], period = 'm
 export default CustomerGrowthAreaChart;
 
 
+

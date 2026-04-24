@@ -44,3 +44,4 @@ const useThrottledScroll = (callback, delay = 100, passive = true) => {
 
 export default useThrottledScroll;
 
+

@@ -57,18 +57,7 @@ const ReferEarnSection = ({ onReferClick }) => {
         onClick={onReferClick}
         className="w-full text-white font-bold py-3.5 active:scale-98 transition-all rounded-b-xl shadow-lg hover:shadow-xl"
         style={{
-          backgroundColor: themeColors.button,
-          boxShadow: `0 4px 6px -1px ${themeColors.brand.teal}4D, 0 2px 4px -1px ${themeColors.brand.teal}33`
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.backgroundColor = themeColors.brand.teal;
-          e.target.style.transform = 'scale(0.98)';
-          e.target.style.boxShadow = `0 6px 12px -2px ${themeColors.brand.teal}66`;
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.backgroundColor = themeColors.button;
-          e.target.style.transform = 'scale(1)';
-          e.target.style.boxShadow = `0 4px 6px -1px ${themeColors.brand.teal}4D, 0 2px 4px -1px ${themeColors.brand.teal}33`;
+          background: themeColors.brand.gradient,
         }}
       >
         Refer Now
@@ -78,3 +67,4 @@ const ReferEarnSection = ({ onReferClick }) => {
 };
 
 export default ReferEarnSection;
+

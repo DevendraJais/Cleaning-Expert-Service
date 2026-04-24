@@ -116,17 +116,15 @@ const DetailedServiceCard = memo(({ image, title, rating, reviews, price, origin
           <button
             className="ml-auto text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all duration-300"
             style={{
-              backgroundColor: `${themeColors.brand.teal}08`,
-              color: themeColors.brand.teal,
-              borderColor: `${themeColors.brand.teal}20`
+              background: themeColors.brand.gradient,
+              color: '#ffffff',
+              border: 'none'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = themeColors.brand.teal;
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.opacity = '0.9';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = `${themeColors.brand.teal}08`;
-              e.currentTarget.style.color = themeColors.brand.teal;
+              e.currentTarget.style.opacity = '1';
             }}
           >
             Book
@@ -140,4 +138,5 @@ const DetailedServiceCard = memo(({ image, title, rating, reviews, price, origin
 DetailedServiceCard.displayName = 'DetailedServiceCard';
 
 export default DetailedServiceCard;
+
 

@@ -311,16 +311,14 @@ const Cart = () => {
                         onClick={() => handleCategoryCheckout(category)}
                         className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-95 shadow-md"
                         style={{
-                          backgroundColor: themeColors.button,
-                          boxShadow: `0 2px 6px ${themeColors.brand.teal}4D`
+                          background: themeColors.brand.gradient,
+                          boxShadow: `0 2px 6px rgba(0,0,0,0.1)`
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = themeColors.brand.teal;
-                          e.target.style.boxShadow = `0 4px 12px ${themeColors.brand.teal}66`;
+                          e.target.style.opacity = '0.9';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = themeColors.button;
-                          e.target.style.boxShadow = `0 2px 6px ${themeColors.brand.teal}4D`;
+                          e.target.style.opacity = '1';
                         }}
                       >
                         Book
@@ -339,3 +337,4 @@ const Cart = () => {
 };
 
 export default Cart;
+

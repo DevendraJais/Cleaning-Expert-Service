@@ -74,7 +74,7 @@ const OptimizedImage = ({
         style={{ width, height, ...style }}
       >
         <img
-          src="/Homestr-logo.png"
+          src="/Truliq-logo.png"
           alt="Image not available"
           className="w-12 h-12 object-contain opacity-40 grayscale"
         />
@@ -113,3 +113,4 @@ const OptimizedImage = ({
 };
 
 export default React.memo(OptimizedImage);
+

@@ -1621,3 +1621,4 @@ export default function BookingDetails() {
     </div>
   );
 }
+

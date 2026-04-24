@@ -95,3 +95,4 @@ const BookingsBarChart = ({ data, period = 'month' }) => {
 export default BookingsBarChart;
 
 
+

@@ -92,3 +92,4 @@ export const getCloudinarySrcSet = (url, widths = [320, 640, 960, 1280]) => {
 };
 
 export default optimizeCloudinaryUrl;
+

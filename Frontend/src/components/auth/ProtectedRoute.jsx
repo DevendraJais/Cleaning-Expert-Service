@@ -133,3 +133,4 @@ const ProtectedRoute = ({ children, userType = 'user', redirectTo = null }) => {
 
 export default ProtectedRoute;
 
+

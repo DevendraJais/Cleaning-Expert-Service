@@ -39,3 +39,4 @@ const MapEmbed = ({ lat, lng, address, height = '200px' }) => {
 
 export default MapEmbed;
 
+

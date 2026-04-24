@@ -191,3 +191,4 @@ const AdminScrapPage = () => {
 };
 
 export default AdminScrapPage;
+

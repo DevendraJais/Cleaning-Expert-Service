@@ -34,7 +34,7 @@ const CategoryCard = memo(({ icon, title, onClick, hasSaleBadge = false, index =
       }}
     >
       <div
-        className="w-[64px] h-[64px] rounded-2xl flex items-center justify-center mb-2 relative border border-gray-100 flex-shrink-0 transition-all duration-500 group-hover:shadow-lg group-hover:shadow-primary-100 group-hover:-translate-y-1 bg-white"
+        className="w-[64px] h-[64px] rounded-2xl flex items-center justify-center mb-2 relative border border-black/10 flex-shrink-0 transition-all duration-500 group-hover:shadow-lg group-hover:border-black/30 group-hover:-translate-y-1 bg-white"
         style={{
           boxShadow: '0 8px 20px -6px rgba(0,0,0,0.05)',
         }}
@@ -88,4 +88,5 @@ const CategoryCard = memo(({ icon, title, onClick, hasSaleBadge = false, index =
 CategoryCard.displayName = 'CategoryCard';
 
 export default CategoryCard;
+
 

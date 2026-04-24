@@ -472,3 +472,4 @@ const AllVendors = () => {
 };
 
 export default AllVendors;
+

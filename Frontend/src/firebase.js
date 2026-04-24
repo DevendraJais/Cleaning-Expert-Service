@@ -38,3 +38,4 @@ try {
 }
 
 export { app, messaging, db, getToken, onMessage };
+

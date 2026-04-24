@@ -11,3 +11,4 @@ export const getPlans = async () => {
 };
 
 export default { getPlans };
+

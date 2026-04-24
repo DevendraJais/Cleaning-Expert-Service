@@ -31,3 +31,4 @@ const Modal = ({ isOpen, onClose, title, children, size = "md" }) => {
 
 export default Modal;
 
+

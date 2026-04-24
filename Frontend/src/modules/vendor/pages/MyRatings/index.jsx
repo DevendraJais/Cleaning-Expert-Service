@@ -202,3 +202,4 @@ const MyRatings = () => {
 };
 
 export default MyRatings;
+

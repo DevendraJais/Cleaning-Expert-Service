@@ -55,3 +55,4 @@ export const uploadToCloudinary = async (file, folder = 'appzeto', onProgress) =
 };
 
 export default uploadToCloudinary;
+

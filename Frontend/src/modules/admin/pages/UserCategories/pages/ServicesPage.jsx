@@ -230,6 +230,40 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
       categoryId: form.categoryId
     };
 
+    if (form.categoryId === "all") {
+      // Logic for adding to ALL categories assigned to the brand
+      const uniqueIds = new Set(activeBrand?.categoryIds || []);
+      if (activeBrand?.categoryId) uniqueIds.add(activeBrand.categoryId);
+      const categoryIds = Array.from(uniqueIds);
+
+      if (categoryIds.length === 0) {
+        toast.error("No categories available for this brand to add service to all.");
+        return;
+      }
+
+      try {
+        setSaving(true);
+        let successCount = 0;
+        const creations = categoryIds.map(catId => 
+          serviceService.create({ ...data, categoryId: String(catId), brandId: activeBrandId })
+        );
+        
+        const results = await Promise.all(creations);
+        results.forEach(res => { if(res.success) successCount++; });
+
+        toast.success(`Service added to ${successCount} categories`);
+        resetForm();
+        const reloadRes = await serviceService.getAll({ brandId: activeBrandId });
+        if (reloadRes.success) setBrandServices(reloadRes.services);
+      } catch (error) {
+        console.error("Save all services error:", error);
+        toast.error("Failed to add service to all categories");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const result = serviceSchema.safeParse(data);
     if (!result.success) {
       toast.error(result.error.errors[0].message);
@@ -511,6 +545,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
               required
             >
               <option value="">Select Category</option>
+              <option value="all">All (Add to every category below)</option>
               {(() => {
                 const uniqueIds = new Set(activeBrand?.categoryIds || []);
                 if (activeBrand?.categoryId) uniqueIds.add(activeBrand.categoryId);
@@ -604,3 +639,4 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
 };
 
 export default ServicesPage;
+

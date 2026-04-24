@@ -10,3 +10,4 @@ export const initVendorDummyData = () => {
   // Disabled - data fetched from backend
   console.log('Vendor dummy data disabled. Use API: GET /api/vendors/profile');
 };
+

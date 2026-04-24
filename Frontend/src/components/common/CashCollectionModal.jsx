@@ -302,3 +302,4 @@ const FiArrowRight = ({ className }) => (
 );
 
 export default CashCollectionModal;
+

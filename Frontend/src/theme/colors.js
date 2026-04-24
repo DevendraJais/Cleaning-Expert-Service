@@ -9,7 +9,7 @@
  * - Worker module: import { workerTheme } from '../../../../theme'
  */
 
-// Homestr LOGO Core Brand Colors
+// Truliq LOGO Core Brand Colors
 const brand = {
   teal: '#347989',
   yellow: '#D68F35',
@@ -57,5 +57,6 @@ const themeColors = userTheme;
 // Export all themes
 export { userTheme, vendorTheme, workerTheme, brand };
 export default themeColors;
+
 
 

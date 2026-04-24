@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { themeColors } from '../../../theme';
 import { sendOTP, verifyLogin } from '../services/authService';
 import Logo from '../../../components/common/Logo';
+import vendorLoginImg from '../../../assets/images/vendor-login.png';
 
 import { z } from "zod";
 
@@ -192,6 +193,17 @@ const VendorLogin = () => {
         <p className="mt-2 text-sm text-gray-600 animate-stagger-1 animate-fade-in">
           {step === 'phone' ? 'Manage your services and bookings' : `We've sent a 6-digit code to ${phoneNumber}`}
         </p>
+
+        {/* Premium Vendor Illustration */}
+        {step === 'phone' && (
+          <div className="mt-6 flex justify-center">
+            <img 
+              src={vendorLoginImg} 
+              alt="Professional Vendor" 
+              className="w-56 h-auto rounded-2xl shadow-xl border border-gray-100"
+            />
+          </div>
+        )}
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0 relative z-10">
@@ -232,8 +244,8 @@ const VendorLogin = () => {
                   disabled={isLoading || !phoneNumber || phoneNumber.length < 10}
                   className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white transition-all duration-500 shadow-lg hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 overflow-hidden"
                   style={{
-                    backgroundColor: brandColor,
-                    boxShadow: `0 10px 15px -3px ${brandColor}4D`
+                    backgroundColor: '#000000',
+                    boxShadow: `0 10px 15px -3px rgba(0, 0, 0, 0.3)`
                   }}
                 >
                   <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:translate-x-full transition-transform duration-700 -translate-x-full" />
@@ -316,8 +328,8 @@ const VendorLogin = () => {
                     disabled={isLoading || otp.join('').length !== 6}
                     className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white transition-all duration-500 shadow-lg hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 overflow-hidden"
                     style={{
-                      backgroundColor: brandColor,
-                      boxShadow: `0 10px 15px -3px ${brandColor}4D`
+                      backgroundColor: '#000000',
+                      boxShadow: `0 10px 15px -3px rgba(0, 0, 0, 0.3)`
                     }}
                   >
                     <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:translate-x-full transition-transform duration-700 -translate-x-full" />
@@ -346,3 +358,4 @@ const VendorLogin = () => {
 };
 
 export default VendorLogin;
+

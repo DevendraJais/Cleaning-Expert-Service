@@ -116,3 +116,4 @@ const ServiceCard = memo(({ image, title, onClick, gif, youtubeUrl }) => {
 
 ServiceCard.displayName = 'ServiceCard';
 export default ServiceCard;
+

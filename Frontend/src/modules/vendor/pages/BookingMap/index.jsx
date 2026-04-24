@@ -797,3 +797,4 @@ const BookingMap = () => {
 };
 
 export default BookingMap;
+

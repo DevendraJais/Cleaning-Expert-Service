@@ -60,3 +60,4 @@ const LogoLoader = ({ fullScreen = false, overlay = false, inline = false, size 
 };
 
 export default LogoLoader;
+

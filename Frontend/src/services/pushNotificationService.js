@@ -276,7 +276,7 @@ function setupForegroundNotificationHandler(handler) {
     // Use notification fields first, then data fields as fallback (for data-only messages)
     const title = notification.title || data.title || 'New Notification';
     const body = notification.body || data.body || '';
-    const icon = notification.icon || data.icon || '/HomeBuddy-header-logo.png';
+    const icon = notification.icon || data.icon || '/truliq-logo.png';
     const type = data.type || data.notificationType || 'default';
 
     // Call custom handler (e.g. for toast)
@@ -317,3 +317,4 @@ export {
   requestNotificationPermission,
   getFCMToken
 };
+

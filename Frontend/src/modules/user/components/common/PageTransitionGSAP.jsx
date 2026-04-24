@@ -47,3 +47,4 @@ const PageTransitionGSAP = ({ children, isExiting = false, onExitComplete }) => 
 
 export default PageTransitionGSAP;
 
+

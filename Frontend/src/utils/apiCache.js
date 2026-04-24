@@ -69,3 +69,4 @@ class ApiCache {
 // Export singleton instance
 export const apiCache = new ApiCache();
 export default apiCache;
+

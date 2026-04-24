@@ -205,3 +205,4 @@ const LocationPicker = ({ onLocationSelect, initialPosition = null }) => {
 };
 
 export default LocationPicker;
+

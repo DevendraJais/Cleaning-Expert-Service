@@ -120,3 +120,4 @@ export const getUnreadCount = async () => {
     return 0;
   }
 };
+
