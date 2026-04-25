@@ -37,12 +37,23 @@ const bookingSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vendor'
   }],
+  notifiedWorkers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Worker'
+  }],
+  notifiedPartners: [{
+    type: mongoose.Schema.Types.ObjectId
+  }],
 
   // ==========================================
   // WAVE-BASED ALERTING
   // ==========================================
   potentialVendors: [{
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
+    distance: { type: Number } // in km
+  }],
+  potentialWorkers: [{
+    workerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Worker' },
     distance: { type: Number } // in km
   }],
   currentWave: {
@@ -260,6 +271,23 @@ const bookingSchema = new mongoose.Schema({
     default: 'scheduled',
     index: true
   },
+  bookingModel: {
+    type: String,
+    enum: ['vendor', 'worker'],
+    default: 'vendor'
+  },
+  // Consultancy Mode (Lead Generation)
+  isConsultancyRequest: {
+    type: Boolean,
+    default: false
+  },
+  requirementText: {
+    type: String,
+    default: null
+  },
+  requirementImages: [{
+    type: String
+  }],
   status: {
     type: String,
     enum: Object.values(BOOKING_STATUS),

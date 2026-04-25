@@ -139,9 +139,10 @@ const verifyPaymentWebhook = async (req, res) => {
 
     await booking.save();
 
-    // ── Credit Vendor Wallet from VendorBill (single source of truth) ──
+    // ── Credit Partner Wallet from VendorBill (single source of truth) ──
     const Transaction = require('../../models/Transaction');
     const Vendor = require('../../models/Vendor');
+    const Worker = require('../../models/Worker');
     const VendorBill = require('../../models/VendorBill');
 
     // User payment transaction
@@ -159,8 +160,9 @@ const verifyPaymentWebhook = async (req, res) => {
     // Fetch VendorBill for earnings (only if bill exists = post-completion payment)
     const bill = await VendorBill.findOne({ bookingId: booking._id });
 
-    if (bill && booking.vendorId) {
-      const vendorEarning = bill.vendorTotalEarning;
+    if (bill) {
+      const isWorkerBooking = booking.bookingModel === 'worker';
+      const partnerEarning = bill.vendorTotalEarning;
 
       // Mark bill as paid
       bill.status = 'paid';
@@ -168,38 +170,61 @@ const verifyPaymentWebhook = async (req, res) => {
       await bill.save();
 
       // Online payment: only earnings increase, NO dues (platform holds the money)
-      await Vendor.findByIdAndUpdate(booking.vendorId, {
-        $inc: { 'wallet.earnings': vendorEarning }
-      });
-
-      // Earnings credit transaction
-      if (vendorEarning > 0) {
-        await Transaction.create({
-          vendorId: booking.vendorId,
-          bookingId: booking._id,
-          amount: vendorEarning,
-          type: 'earnings_credit',
-          paymentMethod: 'system',
-          status: 'completed',
-          description: `Earnings ₹${vendorEarning} credited for booking ${booking.bookingNumber} (online payment)`,
-          metadata: {
-            type: 'earnings_increase',
-            billId: bill._id.toString(),
-            serviceEarning: bill.vendorServiceEarning,
-            partsEarning: bill.vendorPartsEarning
-          }
+      if (isWorkerBooking && booking.workerId) {
+        await Worker.findByIdAndUpdate(booking.workerId, {
+          $inc: { 'wallet.earnings': partnerEarning, 'wallet.balance': partnerEarning }
         });
+
+        // Earnings credit transaction for Worker
+        if (partnerEarning > 0) {
+          await Transaction.create({
+            workerId: booking.workerId,
+            bookingId: booking._id,
+            amount: partnerEarning,
+            type: 'earnings_credit',
+            paymentMethod: 'system',
+            status: 'completed',
+            description: `Earnings ₹${partnerEarning} credited for booking ${booking.bookingNumber} (online payment)`,
+            metadata: {
+              type: 'earnings_increase',
+              billId: bill._id.toString()
+            }
+          });
+        }
+      } else if (booking.vendorId) {
+        await Vendor.findByIdAndUpdate(booking.vendorId, {
+          $inc: { 'wallet.earnings': partnerEarning }
+        });
+
+        // Earnings credit transaction for Vendor
+        if (partnerEarning > 0) {
+          await Transaction.create({
+            vendorId: booking.vendorId,
+            bookingId: booking._id,
+            amount: partnerEarning,
+            type: 'earnings_credit',
+            paymentMethod: 'system',
+            status: 'completed',
+            description: `Earnings ₹${partnerEarning} credited for booking ${booking.bookingNumber} (online payment)`,
+            metadata: {
+              type: 'earnings_increase',
+              billId: bill._id.toString(),
+              serviceEarning: bill.vendorServiceEarning,
+              partsEarning: bill.vendorPartsEarning
+            }
+          });
+        }
       }
 
-      console.log(`[Payment] Credited ₹${vendorEarning} to vendor ${booking.vendorId}`);
+      console.log(`[Payment] Credited ₹${partnerEarning} to ${isWorkerBooking ? 'worker' : 'vendor'}`);
     }
 
     // Record stats in the Daily Earning Tracker (Async)
     recordBookingEarning({
       date: new Date(),
       totalRevenue: Number(bill ? bill.grandTotal : booking.finalAmount) || 0,
-      platformCommission: Number(bill ? bill.companyRevenue : (booking.finalAmount * 0.2)) || 0,
-      vendorEarnings: Number(bill ? bill.vendorTotalEarning : (booking.finalAmount * 0.8)) || 0,
+      platformCommission: Number(bill ? bill.companyRevenue : 0) || 0,
+      vendorEarnings: Number(bill ? bill.vendorTotalEarning : 0) || 0,
       totalGST: Number(bill ? bill.totalGST : 0) || 0,
       totalTDS: 0 // Tracked in withdrawals
     }).catch(err => console.error('[Payment] Daily tracker failed:', err));
@@ -344,14 +369,16 @@ const processWalletPayment = async (req, res) => {
 
     await booking.save();
 
-    // ── Credit Vendor Wallet from VendorBill (single source of truth) ──
+    // ── Credit Partner Wallet from VendorBill (single source of truth) ──
     const Vendor = require('../../models/Vendor');
+    const Worker = require('../../models/Worker');
     const VendorBill = require('../../models/VendorBill');
 
     const bill = await VendorBill.findOne({ bookingId: booking._id });
 
-    if (bill && booking.vendorId) {
-      const vendorEarning = bill.vendorTotalEarning;
+    if (bill) {
+      const isWorkerBooking = booking.bookingModel === 'worker';
+      const partnerEarning = bill.vendorTotalEarning;
 
       // Mark bill as paid
       bill.status = 'paid';
@@ -359,37 +386,59 @@ const processWalletPayment = async (req, res) => {
       await bill.save();
 
       // Wallet payment: only earnings increase, NO dues (platform holds the money)
-      await Vendor.findByIdAndUpdate(booking.vendorId, {
-        $inc: { 'wallet.earnings': vendorEarning }
-      });
-
-      if (vendorEarning > 0) {
-        await Transaction.create({
-          vendorId: booking.vendorId,
-          bookingId: booking._id,
-          amount: vendorEarning,
-          type: 'earnings_credit',
-          paymentMethod: 'system',
-          status: 'completed',
-          description: `Earnings ₹${vendorEarning} credited for booking ${booking.bookingNumber} (wallet payment)`,
-          metadata: {
-            type: 'earnings_increase',
-            billId: bill._id.toString(),
-            serviceEarning: bill.vendorServiceEarning,
-            partsEarning: bill.vendorPartsEarning
-          }
+      if (isWorkerBooking && booking.workerId) {
+        await Worker.findByIdAndUpdate(booking.workerId, {
+          $inc: { 'wallet.earnings': partnerEarning, 'wallet.balance': partnerEarning }
         });
+
+        if (partnerEarning > 0) {
+          await Transaction.create({
+            workerId: booking.workerId,
+            bookingId: booking._id,
+            amount: partnerEarning,
+            type: 'earnings_credit',
+            paymentMethod: 'system',
+            status: 'completed',
+            description: `Earnings ₹${partnerEarning} credited for booking ${booking.bookingNumber} (wallet payment)`,
+            metadata: {
+              type: 'earnings_increase',
+              billId: bill._id.toString()
+            }
+          });
+        }
+      } else if (booking.vendorId) {
+        await Vendor.findByIdAndUpdate(booking.vendorId, {
+          $inc: { 'wallet.earnings': partnerEarning }
+        });
+
+        if (partnerEarning > 0) {
+          await Transaction.create({
+            vendorId: booking.vendorId,
+            bookingId: booking._id,
+            amount: partnerEarning,
+            type: 'earnings_credit',
+            paymentMethod: 'system',
+            status: 'completed',
+            description: `Earnings ₹${partnerEarning} credited for booking ${booking.bookingNumber} (wallet payment)`,
+            metadata: {
+              type: 'earnings_increase',
+              billId: bill._id.toString(),
+              serviceEarning: bill.vendorServiceEarning,
+              partsEarning: bill.vendorPartsEarning
+            }
+          });
+        }
       }
 
-      console.log(`[Wallet Payment] Credited ₹${vendorEarning} to vendor ${booking.vendorId}`);
+      console.log(`[Wallet Payment] Credited ₹${partnerEarning} to ${isWorkerBooking ? 'worker' : 'vendor'}`);
     }
 
     // Record stats in the Daily Earning Tracker (Async)
     recordBookingEarning({
       date: new Date(),
       totalRevenue: Number(bill ? bill.grandTotal : booking.finalAmount) || 0,
-      platformCommission: Number(bill ? bill.companyRevenue : (booking.finalAmount * 0.2)) || 0,
-      vendorEarnings: Number(bill ? bill.vendorTotalEarning : (booking.finalAmount * 0.8)) || 0,
+      platformCommission: Number(bill ? bill.companyRevenue : 0) || 0,
+      vendorEarnings: Number(bill ? bill.vendorTotalEarning : 0) || 0,
       totalGST: Number(bill ? bill.totalGST : 0) || 0,
       totalTDS: 0 // Tracked in withdrawals
     }).catch(err => console.error('[Wallet Payment] Daily tracker failed:', err));

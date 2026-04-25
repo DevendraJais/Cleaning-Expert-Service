@@ -121,7 +121,8 @@ const AdminSettings = () => {
             vendorCashLimit: res.settings.vendorCashLimit || 10000,
             cancellationPenalty: res.settings.cancellationPenalty !== undefined ? res.settings.cancellationPenalty : 49,
             searchRadius: res.settings.searchRadius || 10,
-            isOnlinePaymentEnabled: res.settings.isOnlinePaymentEnabled !== undefined ? res.settings.isOnlinePaymentEnabled : true
+            isOnlinePaymentEnabled: res.settings.isOnlinePaymentEnabled !== undefined ? res.settings.isOnlinePaymentEnabled : true,
+            bookingModel: res.settings.bookingModel || 'vendor'
           });
           // Load billing settings
           setBillingSettings({
@@ -791,6 +792,22 @@ const AdminSettings = () => {
                     <button onClick={() => handleToggle('workerAutoAssignment')}
                       className={`relative w-12 h-7 rounded-full transition-all duration-300 ${settings.workerAutoAssignment ? 'bg-blue-600' : 'bg-gray-200'}`}>
                       <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${settings.workerAutoAssignment ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800">Direct Worker Booking Mode</p>
+                      <p className="text-xs text-gray-500 mt-1">When ON, bookings go directly to workers (bypassing vendors)</p>
+                    </div>
+                    <button onClick={() => {
+                      const newModel = financialSettings.bookingModel === 'worker' ? 'vendor' : 'worker';
+                      setFinancialSettings(prev => ({ ...prev, bookingModel: newModel }));
+                      updateSettings({ bookingModel: newModel });
+                      toast.success(`Switched to ${newModel} booking model`);
+                    }}
+                      className={`relative w-12 h-7 rounded-full transition-all duration-300 ${financialSettings.bookingModel === 'worker' ? 'bg-purple-600' : 'bg-gray-200'}`}>
+                      <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${financialSettings.bookingModel === 'worker' ? 'translate-x-5' : 'translate-x-0'}`} />
                     </button>
                   </div>
 

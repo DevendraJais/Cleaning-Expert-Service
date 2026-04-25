@@ -15,7 +15,13 @@ const bookingRequestSchema = new mongoose.Schema({
   vendorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vendor',
-    required: true,
+    default: null,
+    index: true
+  },
+  workerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Worker',
+    default: null,
     index: true
   },
   status: {
@@ -68,8 +74,9 @@ const bookingRequestSchema = new mongoose.Schema({
 });
 
 // Compound indexes for common queries
-bookingRequestSchema.index({ bookingId: 1, vendorId: 1 }, { unique: true });
+bookingRequestSchema.index({ bookingId: 1, vendorId: 1, workerId: 1 });
 bookingRequestSchema.index({ vendorId: 1, status: 1 });
+bookingRequestSchema.index({ workerId: 1, status: 1 });
 bookingRequestSchema.index({ bookingId: 1, status: 1 });
 bookingRequestSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index for auto-expiry
 

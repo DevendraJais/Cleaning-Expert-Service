@@ -585,9 +585,38 @@ const collectCash = async (req, res) => {
     bill.paidAt = new Date();
     await bill.save();
 
-    // Update Vendor Wallet
-    const Vendor = require('../../models/Vendor');
-    if (booking.vendorId) {
+    // Update Wallet based on Booking Model
+    if (booking.bookingModel === 'worker') {
+      const Worker = require('../../models/Worker');
+      const workerDoc = await Worker.findById(workerId);
+      if (workerDoc) {
+        // In Direct Worker Model, Worker keeps 100% of cash.
+        // We only track it for reporting.
+        workerDoc.wallet.totalCashCollected = (workerDoc.wallet.totalCashCollected || 0) + grandTotal;
+        workerDoc.wallet.earnings = (workerDoc.wallet.earnings || 0) + grandTotal;
+        // No 'balance' update for cash because worker ALREADY has the cash.
+        await workerDoc.save();
+
+        // Create Transaction for Worker
+        const Transaction = require('../../models/Transaction');
+        await Transaction.create({
+          workerId,
+          bookingId: booking._id,
+          type: 'cash_collected',
+          amount: grandTotal,
+          status: 'completed',
+          paymentMethod: 'cash collected',
+          description: `Cash ₹${grandTotal} collected for booking #${booking.bookingNumber}`,
+          metadata: {
+            type: 'cash_reporting',
+            billId: bill._id.toString(),
+            grandTotal
+          }
+        });
+      }
+    } else if (booking.vendorId) {
+      // Legacy Vendor Logic (already exists)
+      const Vendor = require('../../models/Vendor');
       const vendorDoc = await Vendor.findById(booking.vendorId).select('wallet');
       if (vendorDoc) {
         const currentDues = (vendorDoc.wallet.dues || 0) + grandTotal;
@@ -615,8 +644,6 @@ const collectCash = async (req, res) => {
 
         // Create Transactions
         const Transaction = require('../../models/Transaction');
-
-        // 1. Cash Collected
         await Transaction.create({
           vendorId: booking.vendorId,
           bookingId: booking._id,
@@ -624,7 +651,7 @@ const collectCash = async (req, res) => {
           type: 'cash_collected',
           amount: grandTotal,
           status: 'completed',
-          paymentMethod: 'cash collected', // Standardized label
+          paymentMethod: 'cash collected',
           description: `Cash ₹${grandTotal} collected by worker for booking #${booking.bookingNumber}`,
           metadata: {
             type: 'dues_increase',
@@ -636,7 +663,6 @@ const collectCash = async (req, res) => {
           }
         });
 
-        // 2. Earnings Credit
         if (vendorEarning > 0) {
           await Transaction.create({
             vendorId: booking.vendorId,
@@ -645,7 +671,7 @@ const collectCash = async (req, res) => {
             amount: vendorEarning,
             status: 'completed',
             paymentMethod: 'wallet',
-            description: `Earnings ₹${vendorEarning} credited for booking #${booking.bookingNumber} (70% service + 10% parts)`,
+            description: `Earnings ₹${vendorEarning} credited for booking #${booking.bookingNumber}`,
             metadata: {
               type: 'earnings_increase',
               billId: bill._id.toString(),

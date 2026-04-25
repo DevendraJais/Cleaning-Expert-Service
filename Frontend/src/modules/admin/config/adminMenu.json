@@ -158,6 +158,14 @@
     "children": []
   },
   {
+    "title": "Worker Plans",
+    "route": "/admin/worker-plans",
+    "allowedRoles": [
+      "super_admin"
+    ],
+    "children": []
+  },
+  {
     "title": "Settings",
     "route": "/admin/settings",
     "allowedRoles": [

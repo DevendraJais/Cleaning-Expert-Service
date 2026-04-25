@@ -42,6 +42,14 @@ const categorySchema = new mongoose.Schema({
     default: 0,
     index: true
   },
+  isConsultancy: {
+    type: Boolean,
+    default: false
+  },
+  consultancyMessage: {
+    type: String,
+    default: 'This service requires a personalized quote. Share your requirements and images for a custom estimate.'
+  },
   // Cities where this category is available
   cityIds: [{
     type: mongoose.Schema.Types.ObjectId,

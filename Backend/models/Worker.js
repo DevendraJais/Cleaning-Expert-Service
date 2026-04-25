@@ -101,6 +101,18 @@ const workerSchema = new mongoose.Schema({
   wallet: {
     balance: {
       type: Number,
+      default: 0 // Current withdrawable amount
+    },
+    earnings: {
+      type: Number,
+      default: 0 // Lifetime earnings
+    },
+    totalCashCollected: {
+      type: Number,
+      default: 0
+    },
+    totalWithdrawn: {
+      type: Number,
       default: 0
     }
   },
@@ -144,9 +156,47 @@ const workerSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  // GeoJSON Location for 2dsphere indexing (fast geo queries)
+  geoLocation: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] } // [lng, lat]
+  },
+  // Real-time Online Status
+  isOnline: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  lastSeenAt: {
+    type: Date,
+    default: null
+  },
   loginSessionId: {
     type: String,
     default: null
+  },
+  subscription: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    planId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'WorkerSubscriptionPlan',
+      default: null
+    },
+    startDate: {
+      type: Date,
+      default: null
+    },
+    expiryDate: {
+      type: Date,
+      default: null
+    },
+    transactionId: {
+      type: String,
+      default: null
+    }
   }
 }, {
   timestamps: true
@@ -156,6 +206,8 @@ const workerSchema = new mongoose.Schema({
 workerSchema.index({ status: 1 });
 workerSchema.index({ serviceCategories: 1 });
 workerSchema.index({ vendorId: 1 });
+workerSchema.index({ geoLocation: '2dsphere' }); // Fast geo queries
+workerSchema.index({ isOnline: 1, approvalStatus: 1 }); 
 
 // Hash password before saving
 workerSchema.pre('save', async function (next) {

@@ -196,6 +196,7 @@ app.use('/api/workers', require('./routes/worker-routes/profile.routes'));
 app.use('/api/workers', require('./routes/worker-routes/job.routes'));
 app.use('/api/workers', require('./routes/worker-routes/dashboard.routes'));
 app.use('/api/workers/wallet', require('./routes/worker-routes/wallet.routes'));
+app.use('/api/workers/subscription', require('./routes/worker-routes/subscription.routes'));
 app.use('/api/workers/fcm-tokens', require('./routes/worker-routes/fcmToken.routes'));
 
 // Admin routes
@@ -215,6 +216,7 @@ app.use('/api/admin', require('./routes/admin-routes/paymentManagement.routes'))
 app.use('/api/admin', require('./routes/admin-routes/transactionManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/upload.routes'));
 app.use('/api/admin', require('./routes/admin-routes/planManagement.routes'));
+app.use('/api/admin/worker-plans', require('./routes/admin-routes/workerPlanManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/settings.routes'));
 app.use('/api/admin', require('./routes/admin-routes/reviewManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/reportManagement.routes'));

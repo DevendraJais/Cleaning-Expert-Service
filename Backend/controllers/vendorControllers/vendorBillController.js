@@ -43,8 +43,12 @@ const createOrUpdateBill = async (req, res) => {
 
     // ── Fetch Settings (frozen snapshot) ──
     const settings = await Settings.findOne({ type: 'global' });
-    const serviceSplitPct = settings?.servicePayoutPercentage ?? 70;
-    const partsSplitPct = settings?.partsPayoutPercentage ?? 10;
+    
+    // Check if it's a Direct Worker flow to apply 100% payout
+    const isDirectWorkerFlow = booking.bookingModel === 'worker';
+    
+    const serviceSplitPct = isDirectWorkerFlow ? 100 : (settings?.servicePayoutPercentage ?? 70);
+    const partsSplitPct = isDirectWorkerFlow ? 100 : (settings?.partsPayoutPercentage ?? 10);
     const serviceGstPct = settings?.serviceGstPercentage ?? 18;
     const partsGstPct = settings?.partsGstPercentage ?? 18;
 

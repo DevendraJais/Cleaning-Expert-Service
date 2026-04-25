@@ -49,6 +49,7 @@ const JobMap = lazyLoad(() => import('../pages/JobMap'));
 const JobTimeline = lazyLoad(() => import('../pages/JobTimeline'));
 const Wallet = lazyLoad(() => import('../pages/Wallet'));
 const BillingPage = lazyLoad(() => import('../pages/BillingPage'));
+const Subscription = lazyLoad(() => import('../pages/Subscription'));
 
 // Loading fallback component
 import LogoLoader from '../../../components/common/LogoLoader';
@@ -99,6 +100,7 @@ const WorkerRoutes = () => {
               <Route path="/settings" element={<ProtectedRoute userType="worker"><Settings /></ProtectedRoute>} />
               <Route path="/notifications" element={<ProtectedRoute userType="worker"><Notifications /></ProtectedRoute>} />
               <Route path="/wallet" element={<ProtectedRoute userType="worker"><Wallet /></ProtectedRoute>} />
+              <Route path="/subscription" element={<ProtectedRoute userType="worker"><Subscription /></ProtectedRoute>} />
             </Routes>
           </PageTransition>
         </Suspense>

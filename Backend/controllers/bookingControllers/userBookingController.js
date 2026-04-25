@@ -49,7 +49,11 @@ const createBooking = async (req, res) => {
       categoryIcon: reqCategoryIcon,
       brandName: reqBrandName,
       brandIcon: reqBrandIcon,
-      bookingType // Extract bookingType
+      bookingType, // Extract bookingType
+      // Consultancy Fields
+      isConsultancyRequest,
+      requirementText,
+      requirementImages
     } = req.body;
 
     let visitingCharges = reqVisitingCharges !== undefined ? reqVisitingCharges : (reqVisitationFee || 0);
@@ -106,44 +110,59 @@ const createBooking = async (req, res) => {
     // Check for Pending Penalty
     const pendingPenalty = user.wallet?.penalty || 0;
 
-    // --- MOVE VENDOR SEARCH UP HERE ---
-    // Find nearby vendors using location service
-    const { findNearbyVendors, geocodeAddress } = require('../../services/locationService');
+    // --- MOVE SEARCH UP HERE ---
+    // Load Global Settings for Flow Control
+    const Settings = require('../../models/Settings');
+    const globalSettings = await Settings.findOne({ type: 'global' }).select('searchRadius bookingModel').lean();
+    const bookingModel = globalSettings?.bookingModel || 'vendor';
+    const searchRadius = globalSettings?.searchRadius || 10;
 
-    // ... (Vendor Search Logic Omitted/Unchanged - keeping context)
+    // Find nearby partners using location service
+    const { findNearbyVendors, findNearbyWorkers, geocodeAddress } = require('../../services/locationService');
+
     // Determine booking location (prioritize frontend coordinates)
     let bookingLocation;
     if (address.lat && address.lng) {
       bookingLocation = { lat: address.lat, lng: address.lng };
-      console.log('Using provided coordinates for vendor search:', bookingLocation);
+      console.log('Using provided coordinates for partner search:', bookingLocation);
     } else {
       bookingLocation = await geocodeAddress(
         `${address.addressLine1}, ${address.city}, ${address.state} ${address.pincode}`
       );
-      console.log('Geocoded address for vendor search:', bookingLocation);
+      console.log('Geocoded address for partner search:', bookingLocation);
     }
 
-    // Find vendors within 10km radius who offer this service category
-    // CUSTOM - Check Cash Limit only if payment method is CASH
-    const vendorFilters = {
-      ...(category ? { service: category.title } : {}),
-      checkCashLimit: paymentMethod === 'cash',
-      city: address.city
-    };
+    let nearbyPartners = [];
+    if (bookingModel === 'worker') {
+      console.log('[CreateBooking] Direct Worker Mode Active. Searching Workers...');
+      const workerFilters = {
+        service: category?.title || service.category,
+        city: address.city
+      };
+      nearbyPartners = await findNearbyWorkers(bookingLocation, searchRadius, workerFilters);
+    } else {
+      console.log('[CreateBooking] Legacy Vendor Mode Active. Searching Vendors...');
+      const vendorFilters = {
+        ...(category ? { service: category.title } : {}),
+        checkCashLimit: paymentMethod === 'cash',
+        city: address.city
+      };
+      nearbyPartners = await findNearbyVendors(bookingLocation, searchRadius, vendorFilters);
+    }
 
-    console.log(`[LocationService] Searching vendors with: center=${JSON.stringify(bookingLocation)}, radius=10km, filters=${JSON.stringify(vendorFilters)}`);
-    let nearbyVendors = await findNearbyVendors(bookingLocation, 10, vendorFilters);
-
-    // Deduplicate nearbyVendors by _id to prevent duplicate notifications
-    const uniqueVendorIds = new Set();
-    nearbyVendors = nearbyVendors.filter(vendor => {
-      const idStr = vendor._id.toString();
-      if (uniqueVendorIds.has(idStr)) return false;
-      uniqueVendorIds.add(idStr);
+    // Deduplicate nearbyPartners by _id to prevent duplicate notifications
+    const uniquePartnerIds = new Set();
+    nearbyPartners = nearbyPartners.filter(partner => {
+      const idStr = partner._id.toString();
+      if (uniquePartnerIds.has(idStr)) return false;
+      uniquePartnerIds.add(idStr);
       return true;
     });
 
-    console.log(`[CreateBooking] Found ${nearbyVendors.length} nearby vendors for booking`);
+    console.log(`[CreateBooking] Found ${nearbyPartners.length} nearby ${bookingModel}s for booking`);
+    // Store in a shared variable for background tasks
+    const foundPartners = nearbyPartners;
+    // --- END SEARCH BLOCK ---
     // --- END VENDOR SEARCH BLOCK ---
 
     // Calculate pricing - use amount from frontend if provided, otherwise calculate
@@ -303,6 +322,11 @@ const createBooking = async (req, res) => {
       brandName: reqBrandName || brandName,
       brandIcon: reqBrandIcon || brandIcon,
       bookingType: bookingType || 'scheduled',
+      bookingModel: bookingModel,
+
+      isConsultancyRequest: isConsultancyRequest || false,
+      requirementText: requirementText || null,
+      requirementImages: requirementImages || [],
 
       description: service.description,
       serviceImages: service.images || [],
@@ -390,63 +414,68 @@ const createBooking = async (req, res) => {
           console.log(`User ${userId} upgraded to Plus Membership until ${expiryDate}`);
         }
 
-        // Nearby vendors already found above
+        // Partners already found above
         // WAVE-BASED ALERTING: Sort by distance and only notify first wave
-        const sortedVendors = nearbyVendors.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+        const sortedPartners = foundPartners.sort((a, b) => (a.distance || 0) - (b.distance || 0));
 
-        // Wave 1: First 3 vendors
+        // Wave 1: First 3 partners
         const WAVE_1_COUNT = 3;
-        const wave1Vendors = sortedVendors.slice(0, WAVE_1_COUNT);
+        const wave1Partners = sortedPartners.slice(0, WAVE_1_COUNT);
 
-        // Store all potential vendors in booking for scheduler to use
-        bookingForBackground.potentialVendors = sortedVendors.map(v => ({
-          vendorId: v._id,
-          distance: v.distance || 0
-        }));
+        // Store potential partners in booking
+        if (bookingModel === 'worker') {
+          bookingForBackground.potentialWorkers = sortedPartners.map(v => ({
+            workerId: v._id,
+            distance: v.distance || 0
+          }));
+        } else {
+          bookingForBackground.potentialVendors = sortedPartners.map(v => ({
+            vendorId: v._id,
+            distance: v.distance || 0
+          }));
+        }
+        
         bookingForBackground.currentWave = 1;
         bookingForBackground.waveStartedAt = new Date();
-        bookingForBackground.notifiedVendors = wave1Vendors.map(v => v._id);
+        bookingForBackground.notifiedPartners = wave1Partners.map(v => v._id);
         await bookingForBackground.save();
 
-        if (wave1Vendors.length > 0) {
-          console.log(`[CreateBooking] Wave 1: Alerting ${wave1Vendors.length} closest vendors (of ${sortedVendors.length} total)`);
+        if (wave1Partners.length > 0) {
+          console.log(`[CreateBooking] Wave 1: Alerting ${wave1Partners.length} closest ${bookingModel}s (of ${sortedPartners.length} total)`);
 
-          // Create BookingRequest entries for Wave 1 vendors
+          // Create BookingRequest entries for Wave 1 partners
           const BookingRequest = require('../../models/BookingRequest');
-          const bookingRequests = wave1Vendors.map(vendor => ({
+          const bookingRequests = wave1Partners.map(partner => ({
             bookingId: bookingForBackground._id,
-            vendorId: vendor._id,
+            vendorId: bookingModel === 'vendor' ? partner._id : null,
+            workerId: bookingModel === 'worker' ? partner._id : null,
             status: 'PENDING',
             wave: 1,
-            distance: vendor.distance || null,
+            distance: partner.distance || null,
             sentAt: new Date(),
             expiresAt: new Date(Date.now() + 60 * 60 * 1000) // Expires in 1 hour
           }));
 
           try {
             await BookingRequest.insertMany(bookingRequests, { ordered: false });
-            console.log(`[CreateBooking] Created ${bookingRequests.length} BookingRequest entries`);
+            console.log(`[CreateBooking] Created ${bookingRequests.length} BookingRequest entries for ${bookingModel}s`);
           } catch (err) {
-            // Ignore duplicate key errors (if retrying)
             if (err.code !== 11000) console.error('[CreateBooking] BookingRequest insert error:', err);
           }
         } else {
-          console.warn(`[CreateBooking] NO VENDORS FOUND nearby! Push notifications will not be sent.`);
-          // Update booking status if no vendors found
+          console.warn(`[CreateBooking] NO ${bookingModel.toUpperCase()}S FOUND nearby!`);
           bookingForBackground.status = BOOKING_STATUS.NO_VENDORS;
           await bookingForBackground.save();
         }
 
-        // Send notifications to Wave 1 vendors ONLY
-        // 1. Emit Socket.IO event FIRST (Instant & Reliable)
+        // Send notifications to Wave 1 partners
         const { getIO } = require('../../sockets');
         const io = getIO();
         if (io) {
-          console.log(`[CreateBooking] Emitting Socket.IO events to ${wave1Vendors.length} vendors in Wave 1...`);
-          wave1Vendors.forEach(vendor => {
-            const vendorRoom = `vendor_${vendor._id.toString()}`;
-            console.log(`[Wave 1] Emitting to ${vendorRoom} (dist: ${vendor.distance?.toFixed(1) || 'N/A'}km)`);
-            io.to(vendorRoom).emit('new_booking_request', {
+          console.log(`[CreateBooking] Emitting Socket.IO events to ${wave1Partners.length} ${bookingModel}s in Wave 1...`);
+          wave1Partners.forEach(partner => {
+            const partnerRoom = `${bookingModel}_${partner._id.toString()}`;
+            io.to(partnerRoom).emit('new_booking_request', {
               bookingId: bookingForBackground._id,
               serviceName: serviceForBackground.title,
               customerName: userForBackground.name,
@@ -455,7 +484,7 @@ const createBooking = async (req, res) => {
               scheduledTime: scheduledTime,
               price: finalAmount,
               address: address,
-              distance: vendor.distance,
+              distance: partner.distance,
               serviceCategory: bookingForBackground.serviceCategory,
               brandName: bookingForBackground.brandName,
               brandIcon: bookingForBackground.brandIcon,
@@ -463,16 +492,16 @@ const createBooking = async (req, res) => {
               createdAt: bookingForBackground.createdAt || new Date(),
               expiresAt: new Date(new Date(bookingForBackground.createdAt || Date.now()).getTime() + (60 * 1000)).toISOString(),
               playSound: true,
-              message: `New booking request within ${vendor.distance?.toFixed(1) || '?'}km!`
+              message: `New booking request within ${partner.distance?.toFixed(1) || '?'}km!`
             });
           });
         }
 
-        // 2. Send Firebase/FCM notifications (External service - call AFTER socket)
+        // 2. Send Firebase/FCM notifications
         try {
-          const vendorNotifications = wave1Vendors.map(vendor =>
+          const partnerNotifications = wave1Partners.map(partner =>
             createNotification({
-              vendorId: vendor._id,
+              ...(bookingModel === 'worker' ? { workerId: partner._id } : { vendorId: partner._id }),
               type: 'booking_request',
               title: 'New Booking Request',
               message: `New service request for ${serviceForBackground.title} from ${userForBackground.name}`,
@@ -487,18 +516,18 @@ const createBooking = async (req, res) => {
                 scheduledTime: scheduledTime,
                 location: address,
                 price: finalAmount,
-                distance: vendor.distance
+                distance: partner.distance
               },
               pushData: {
                 type: 'new_booking',
                 dataOnly: false,
-                link: `/vendor/bookings/${bookingForBackground._id}`
+                link: `/${bookingModel}/bookings/${bookingForBackground._id}`
               }
             })
           );
-          await Promise.all(vendorNotifications);
+          await Promise.all(partnerNotifications);
         } catch (notifError) {
-          console.error('[CreateBooking] Firebase/Notification Error (Non-blocking):', notifError.message);
+          console.error('[CreateBooking] Firebase/Notification Error:', notifError.message);
         }
 
         // NOTIFY USER: Send actionable notification so they can track status

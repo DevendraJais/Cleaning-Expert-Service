@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiBell, FiVolume2, FiGlobe, FiLogOut } from 'react-icons/fi';
+import { FiBell, FiVolume2, FiGlobe, FiLogOut, FiStar, FiChevronRight } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { workerTheme as themeColors } from '../../../../theme';
 import { workerAuthService } from '../../../../services/authService';
@@ -239,6 +239,24 @@ const Settings = () => {
             ))}
           </div>
         </div>
+
+        {/* Subscription */}
+        <button
+          onClick={() => navigate('/worker/subscription')}
+          className="w-full rounded-xl p-4 mb-6 flex items-center justify-between shadow-md active:scale-95 transition-all"
+          style={{ background: 'linear-gradient(135deg, #302b63, #24243e)', border: '1px solid rgba(108,99,255,0.4)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-purple-500/20">
+              <FiStar className="w-5 h-5 text-purple-400" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-white">My Subscription</p>
+              <p className="text-white/50 text-xs">View & manage your plan</p>
+            </div>
+          </div>
+          <FiChevronRight className="text-white/40 w-5 h-5" />
+        </button>
 
         {/* Logout */}
         <button

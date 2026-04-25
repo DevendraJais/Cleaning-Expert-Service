@@ -296,9 +296,80 @@ const findVendorsByCity = async (city, filters = {}) => {
   }
 };
 
+/**
+ * Find workers within specified radius of a location
+ * Criteria: Online, Approved, Active Subscription, Matching Expertise
+ */
+const findNearbyWorkers = async (centerLocation, radiusKm = 10, filters = {}) => {
+  const Worker = require('../models/Worker');
+  const Settings = require('../models/Settings');
+
+  if (!centerLocation || typeof centerLocation.lat !== 'number' || typeof centerLocation.lng !== 'number') {
+    return [];
+  }
+
+  try {
+    // Fetch default radius from settings
+    if (radiusKm === 10) {
+      const globalSettings = await Settings.findOne({ type: 'global' }).select('searchRadius').lean();
+      if (globalSettings?.searchRadius) radiusKm = globalSettings.searchRadius;
+    }
+
+    const serviceCategory = filters.service;
+    
+    // Base query for Workers
+    const baseQuery = {
+      approvalStatus: 'approved',
+      isActive: true,
+      isOnline: true,
+      'subscription.isActive': true,
+      'subscription.expiryDate': { $gt: new Date() }
+    };
+
+    if (serviceCategory) {
+      baseQuery.serviceCategories = { $in: [serviceCategory] };
+    }
+
+    console.log(`[LocationService] Searching workers with query: ${JSON.stringify(baseQuery)}`);
+
+    // Use 2dsphere query
+    let nearbyWorkers = await Worker.find({
+      ...baseQuery,
+      geoLocation: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [centerLocation.lng, centerLocation.lat]
+          },
+          $maxDistance: radiusKm * 1000
+        }
+      }
+    }).select('name phone profilePhoto serviceCategories rating totalJobs location geoLocation subscription').limit(50);
+
+    // Calculate distance and format
+    return nearbyWorkers.map(worker => {
+      const workerObj = worker.toObject();
+      if (worker.geoLocation && worker.geoLocation.coordinates) {
+        workerObj.distance = calculateDistance(centerLocation, {
+          lat: worker.geoLocation.coordinates[1],
+          lng: worker.geoLocation.coordinates[0]
+        });
+      } else {
+        workerObj.distance = null;
+      }
+      return workerObj;
+    });
+
+  } catch (error) {
+    console.error('Find nearby workers error:', error);
+    return [];
+  }
+};
+
 module.exports = {
   geocodeAddress,
   findNearbyVendors,
+  findNearbyWorkers,
   findVendorsByCity,
   calculateDistance,
   getDistanceMatrix
