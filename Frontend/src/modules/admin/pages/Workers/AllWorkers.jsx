@@ -45,7 +45,8 @@ const AllWorkers = () => {
             other: worker.otherDocuments?.[0]
           },
           createdAt: worker.createdAt,
-          isActive: worker.isActive
+          isActive: worker.isActive,
+          subscription: worker.subscription || { isActive: false }
         }));
         setWorkers(transformedWorkers);
       } else {
@@ -259,17 +260,18 @@ const AllWorkers = () => {
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Worker Details</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Subscription</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   <tr>
-                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">Loading workers...</td>
+                    <td colSpan="5" className="px-4 py-8 text-center text-xs text-gray-500">Loading workers...</td>
                   </tr>
                 ) : filteredWorkers.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">No workers found</td>
+                    <td colSpan="5" className="px-4 py-8 text-center text-xs text-gray-500">No workers found</td>
                   </tr>
                 ) : (
                   filteredWorkers.map((worker) => (
@@ -293,6 +295,18 @@ const AllWorkers = () => {
                           }`}>
                           {worker.approvalStatus}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {worker.subscription?.isActive ? (
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-purple-700">{worker.subscription.planName}</span>
+                            <span className="text-[9px] text-gray-500">Exp: {new Date(worker.subscription.expiryDate).toLocaleDateString()}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                            No Plan
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
@@ -408,6 +422,40 @@ const AllWorkers = () => {
                   {new Date(selectedWorker.createdAt).toLocaleDateString()}
                 </div>
               </div>
+            </div>
+
+            {/* Subscription Info */}
+            <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+              <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
+                <FiDollarSign className="w-4 h-4" />
+                Subscription Info
+              </h4>
+              {selectedWorker.subscription?.isActive ? (
+                <div className="grid grid-cols-2 gap-y-3 gap-x-6">
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-purple-600 mb-0.5">Active Plan</label>
+                    <div className="text-sm font-bold text-gray-900">{selectedWorker.subscription.planName}</div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-purple-600 mb-0.5">Expiry Date</label>
+                    <div className="text-sm font-bold text-red-600">
+                      {new Date(selectedWorker.subscription.expiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-purple-600 mb-0.5">Started On</label>
+                    <div className="text-sm text-gray-700">
+                      {new Date(selectedWorker.subscription.startDate).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-purple-600 mb-0.5">Duration</label>
+                    <div className="text-sm text-gray-700">{selectedWorker.subscription.durationDays} Days</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-purple-700 italic">No active subscription found for this worker.</div>
+              )}
             </div>
 
             <div>

@@ -122,7 +122,7 @@ const AdminSettings = () => {
             cancellationPenalty: res.settings.cancellationPenalty !== undefined ? res.settings.cancellationPenalty : 49,
             searchRadius: res.settings.searchRadius || 10,
             isOnlinePaymentEnabled: res.settings.isOnlinePaymentEnabled !== undefined ? res.settings.isOnlinePaymentEnabled : true,
-            bookingModel: res.settings.bookingModel || 'vendor'
+            bookingModel: res.settings.bookingModel || 'worker'
           });
           // Load billing settings
           setBillingSettings({

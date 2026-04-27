@@ -49,6 +49,7 @@ const BOOKING_STATUS = {
   IN_PROGRESS: 'in_progress',
   WORK_DONE: 'work_done',
   COMPLETED: 'completed',
+  NO_VENDORS: 'no_vendors', // No vendor/worker accepted in time
   CANCELLED: 'cancelled',
   REJECTED: 'rejected'
 };

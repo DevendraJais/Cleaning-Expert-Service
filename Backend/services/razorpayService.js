@@ -70,7 +70,7 @@ const createOrder = async (amount, currency = 'INR', receipt = null, notes = {})
 
     return {
       success: false,
-      error: error.description || error.message || 'Failed to create Razorpay order'
+      error: error.error?.description || error.description || error.message || 'Failed to create Razorpay order'
     };
   }
 };

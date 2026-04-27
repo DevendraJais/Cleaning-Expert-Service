@@ -12,6 +12,7 @@ const platformEarningSchema = new mongoose.Schema({
   totalGST: { type: Number, default: 0 },
   totalTDS: { type: Number, default: 0 },
   platformCommission: { type: Number, default: 0 },
+  totalWorkerSubscriptionRevenue: { type: Number, default: 0 },
   vendorEarnings: { type: Number, default: 0 },
 
   // Vendor-to-Platform Payments (Clearing negative balance)

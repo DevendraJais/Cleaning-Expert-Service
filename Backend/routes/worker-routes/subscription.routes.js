@@ -4,6 +4,13 @@ const WorkerSubscriptionPlan = require('../../models/WorkerSubscriptionPlan');
 const Worker = require('../../models/Worker');
 const { authenticate } = require('../../middleware/authMiddleware');
 const { isWorker } = require('../../middleware/roleMiddleware');
+const { createSubscriptionOrder, verifySubscriptionPayment } = require('../../controllers/paymentControllers/subscriptionPaymentController');
+
+// POST /api/workers/subscription/create-order → Create Razorpay order
+router.post('/create-order', authenticate, isWorker, createSubscriptionOrder);
+
+// POST /api/workers/subscription/verify-payment → Verify & activate
+router.post('/verify-payment', authenticate, isWorker, verifySubscriptionPayment);
 
 /**
  * GET /api/workers/subscription/plans

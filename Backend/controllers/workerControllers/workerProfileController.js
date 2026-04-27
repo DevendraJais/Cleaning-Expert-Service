@@ -37,6 +37,7 @@ const getProfile = async (req, res) => {
         settings: worker.settings || { notifications: true, language: 'en' },
         isPhoneVerified: worker.isPhoneVerified || false,
         isEmailVerified: worker.isEmailVerified || false,
+        isOnline: worker.isOnline || false,
         createdAt: worker.createdAt,
         updatedAt: worker.updatedAt
       }
@@ -152,7 +153,7 @@ const updateProfile = async (req, res) => {
 };
 
 /**
- * Update worker real-time location
+ * Update worker real-time location (called periodically when online)
  */
 const updateLocation = async (req, res) => {
   try {
@@ -163,9 +164,16 @@ const updateLocation = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Latitude and Longitude are required' });
     }
 
-    // Update only the location field for performance
+    // Update both location formats:
+    // - location: simple lat/lng for display
+    // - geoLocation: GeoJSON Point for 2dsphere spatial queries (booking matching)
     await Worker.findByIdAndUpdate(workerId, {
-      location: { lat, lng, updatedAt: new Date() }
+      location: { lat, lng, updatedAt: new Date() },
+      geoLocation: {
+        type: 'Point',
+        coordinates: [lng, lat] // GeoJSON format: [longitude, latitude]
+      },
+      lastSeenAt: new Date()
     });
 
     res.status(200).json({ success: true, message: 'Location updated' });
@@ -175,9 +183,53 @@ const updateLocation = async (req, res) => {
   }
 };
 
+/**
+ * Toggle worker online/offline status
+ * When going ONLINE: requires lat/lng to set current position
+ * When going OFFLINE: clears online status
+ */
+const toggleOnline = async (req, res) => {
+  try {
+    const workerId = req.user.id;
+    const { isOnline, lat, lng } = req.body;
+
+    const updateData = {
+      isOnline: !!isOnline,
+      lastSeenAt: new Date()
+    };
+
+    // When going online, also update live location
+    if (isOnline && lat !== undefined && lng !== undefined) {
+      updateData.location = { lat, lng, updatedAt: new Date() };
+      updateData.geoLocation = {
+        type: 'Point',
+        coordinates: [lng, lat]
+      };
+    }
+
+    const worker = await Worker.findByIdAndUpdate(workerId, updateData, { new: true })
+      .select('isOnline geoLocation location');
+
+    if (!worker) {
+      return res.status(404).json({ success: false, message: 'Worker not found' });
+    }
+
+    console.log(`[Worker] ${workerId} is now ${isOnline ? '🟢 ONLINE' : '🔴 OFFLINE'}${isOnline ? ` at [${lat}, ${lng}]` : ''}`);
+
+    res.status(200).json({
+      success: true,
+      message: isOnline ? 'You are now online! You will receive job alerts.' : 'You are now offline.',
+      data: { isOnline: worker.isOnline }
+    });
+  } catch (error) {
+    console.error('Toggle online error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
-  updateLocation
+  updateLocation,
+  toggleOnline
 };
-

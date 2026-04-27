@@ -34,17 +34,86 @@ const Subscription = () => {
     }
   };
 
-  const handleActivate = async (plan) => {
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (document.getElementById('razorpay-script')) return resolve(true);
+      const script = document.createElement('script');
+      script.id = 'razorpay-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleSubscribe = async (plan) => {
     setActivating(plan._id);
     try {
-      const res = await api.post('/workers/subscription/activate', { planId: plan._id });
-      if (res.data.success) {
-        toast.success(res.data.message);
-        fetchData(); // Refresh status
+      // Step 1: Load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        toast.error('Payment gateway failed to load. Please try again.');
+        setActivating(null);
+        return;
       }
+
+      // Step 2: Create order on backend
+      const orderRes = await api.post('/workers/subscription/create-order', { planId: plan._id });
+      if (!orderRes.data.success) {
+        toast.error('Could not create payment order');
+        setActivating(null);
+        return;
+      }
+
+      const { orderId, amount, currency, keyId, workerName, workerPhone } = orderRes.data.data;
+
+      // Step 3: Open Razorpay checkout
+      const options = {
+        key: keyId,
+        amount,
+        currency,
+        name: 'Truliq Worker',
+        description: `${plan.title} - ${plan.durationDays} days`,
+        order_id: orderId,
+        prefill: {
+          name: workerName || '',
+          contact: workerPhone || ''
+        },
+        theme: { color: '#6c63ff' },
+        handler: async (response) => {
+          // Step 4: Verify payment on backend
+          try {
+            const verifyRes = await api.post('/workers/subscription/verify-payment', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              planId: plan._id
+            });
+
+            if (verifyRes.data.success) {
+              toast.success(verifyRes.data.message);
+              fetchData(); // Refresh status
+            } else {
+              toast.error('Payment verification failed. Contact support.');
+            }
+          } catch {
+            toast.error('Payment verification error. Contact support.');
+          }
+          setActivating(null);
+        },
+        modal: {
+          ondismiss: () => {
+            toast('Payment cancelled', { icon: 'ℹ️' });
+            setActivating(null);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Activation failed');
-    } finally {
+      console.error('Payment error:', error);
+      toast.error('Payment failed. Please try again.');
       setActivating(null);
     }
   };
@@ -193,7 +262,7 @@ const Subscription = () => {
                   </div>
 
                   <button
-                    onClick={() => handleActivate(plan)}
+                    onClick={() => handleSubscribe(plan)}
                     disabled={isActivating}
                     className="w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
                     style={{

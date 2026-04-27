@@ -78,6 +78,8 @@ const AdminDashboard = () => {
             activeBookings: s.pendingBookings,
             completedBookings: s.completedBookings,
             totalRevenue: s.totalRevenue,
+            bookingRevenue: s.bookingRevenue,
+            workerSubscriptionRevenue: s.workerSubscriptionRevenue,
             todayRevenue: 0,
           });
           setRecentBookingsList(statsRes.data.recentBookings || []);
@@ -151,6 +153,17 @@ const AdminDashboard = () => {
       cardBg: 'bg-gradient-to-br from-green-50 to-emerald-50',
       iconBg: 'bg-white/20',
       link: '/admin/reports/revenue'
+    },
+    {
+      title: 'Worker Plan Revenue',
+      value: formatCurrency(stats.workerSubscriptionRevenue || 0),
+      change: 0,
+      icon: FiDollarSign,
+      color: 'text-white',
+      bgColor: 'bg-gradient-to-br from-purple-500 to-fuchsia-600',
+      cardBg: 'bg-gradient-to-br from-purple-50 to-fuchsia-50',
+      iconBg: 'bg-white/20',
+      link: '/admin/workers/analytics'
     },
     {
       title: 'Pending Bookings',

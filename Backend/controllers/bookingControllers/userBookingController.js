@@ -114,7 +114,7 @@ const createBooking = async (req, res) => {
     // Load Global Settings for Flow Control
     const Settings = require('../../models/Settings');
     const globalSettings = await Settings.findOne({ type: 'global' }).select('searchRadius bookingModel').lean();
-    const bookingModel = globalSettings?.bookingModel || 'vendor';
+    const bookingModel = globalSettings?.bookingModel || 'worker';
     const searchRadius = globalSettings?.searchRadius || 10;
 
     // Find nearby partners using location service

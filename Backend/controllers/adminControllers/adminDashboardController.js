@@ -109,6 +109,24 @@ const getDashboardStats = async (req, res) => {
       workerPaymentStatus: b.workerPaymentStatus
     }));
 
+    const Transaction = require('../../models/Transaction');
+    const subscriptionRevenueResult = await Transaction.aggregate([
+      {
+        $match: {
+          type: 'worker_subscription',
+          status: 'completed',
+          ...dateFilter
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+    const workerSubscriptionRevenue = subscriptionRevenueResult[0]?.total || 0;
+
     res.status(200).json({
       success: true,
       data: {
@@ -120,7 +138,9 @@ const getDashboardStats = async (req, res) => {
           pendingBookings,
           completedBookings,
           cancelledBookings,
-          totalRevenue: revenue.totalRevenue,
+          totalRevenue: revenue.totalRevenue + workerSubscriptionRevenue,
+          bookingRevenue: revenue.totalRevenue,
+          workerSubscriptionRevenue,
           platformCommission,
           pendingVendors,
           approvedVendors,
@@ -187,11 +207,63 @@ const getRevenueAnalytics = async (req, res) => {
       { $sort: { _id: 1 } }
     ]);
 
+    // 2. Transaction (Subscription) analytics
+    const subscriptionData = await Transaction.aggregate([
+      {
+        $match: {
+          type: 'worker_subscription',
+          status: 'completed',
+          createdAt: dateFilter.completedAt || {}
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: groupFormat,
+              date: '$createdAt'
+            }
+          },
+          revenue: { $sum: '$amount' },
+          bookings: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 3. Merge data
+    const mergedData = {};
+    
+    revenueData.forEach(item => {
+      mergedData[item._id] = {
+        date: item._id,
+        revenue: item.revenue,
+        bookings: item.bookings,
+        platformCommission: item.platformCommission
+      };
+    });
+
+    subscriptionData.forEach(item => {
+      if (mergedData[item._id]) {
+        mergedData[item._id].revenue += item.revenue;
+        // We don't necessarily want to count subscriptions as "bookings" for the booking chart,
+        // but we can add them to total revenue.
+      } else {
+        mergedData[item._id] = {
+          date: item._id,
+          revenue: item.revenue,
+          bookings: 0,
+          platformCommission: item.revenue // For subscriptions, platform takes 100% of it
+        };
+      }
+    });
+
+    const finalResult = Object.values(mergedData).sort((a, b) => a.date.localeCompare(b.date));
+
     res.status(200).json({
       success: true,
       data: {
         period,
-        revenueData
+        revenueData: finalResult
       }
     });
   } catch (error) {

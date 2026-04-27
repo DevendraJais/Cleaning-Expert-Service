@@ -33,4 +33,4 @@ temp/
 data/
 
 # Firebase Config
-config/firebase-service-account.json
+config/*.json

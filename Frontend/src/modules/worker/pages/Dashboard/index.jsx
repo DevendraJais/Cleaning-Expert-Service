@@ -78,7 +78,94 @@ const Dashboard = () => {
   const socket = useSocket();
 
   const [alertJobId, setAlertJobId] = useState(null);
+  const [isOnline, setIsOnline] = useState(false);
+  const [togglingOnline, setTogglingOnline] = useState(false);
+  const [locationWatchId, setLocationWatchId] = useState(null);
 
+  // Get current GPS position as a promise
+  const getCurrentPosition = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation not supported'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
+    });
+  };
+
+  // Toggle online/offline with GPS
+  const handleToggleOnline = async () => {
+    setTogglingOnline(true);
+    const goingOnline = !isOnline;
+
+    try {
+      let lat, lng;
+      if (goingOnline) {
+        // Get GPS location before going online
+        try {
+          const pos = await getCurrentPosition();
+          lat = pos.lat;
+          lng = pos.lng;
+        } catch (geoErr) {
+          console.error('GPS error:', geoErr);
+          const { toast } = await import('react-hot-toast');
+          toast.error('Location permission required to go online. Please enable GPS.');
+          setTogglingOnline(false);
+          return;
+        }
+      }
+
+      const res = await workerService.toggleOnline(goingOnline, lat, lng);
+      if (res.success) {
+        setIsOnline(goingOnline);
+        const { toast } = await import('react-hot-toast');
+        toast.success(res.message);
+
+        // Start periodic location updates when online
+        if (goingOnline) {
+          startLocationTracking();
+        } else {
+          stopLocationTracking();
+        }
+      }
+    } catch (error) {
+      console.error('Toggle online error:', error);
+      const { toast } = await import('react-hot-toast');
+      toast.error('Failed to update status');
+    } finally {
+      setTogglingOnline(false);
+    }
+  };
+
+  // Periodic location tracking (every 2 minutes when online)
+  const startLocationTracking = () => {
+    stopLocationTracking(); // clear any existing
+    const id = setInterval(async () => {
+      try {
+        const pos = await getCurrentPosition();
+        await workerService.updateLocation(pos.lat, pos.lng);
+      } catch (err) {
+        console.warn('Background location update failed:', err.message);
+      }
+    }, 2 * 60 * 1000); // Every 2 minutes
+    setLocationWatchId(id);
+  };
+
+  const stopLocationTracking = () => {
+    if (locationWatchId) {
+      clearInterval(locationWatchId);
+      setLocationWatchId(null);
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopLocationTracking();
+  }, [locationWatchId]);
 
   // Fetch Dashboard Data Function
   const fetchDashboardData = async () => {
@@ -100,6 +187,8 @@ const Dashboard = () => {
           categories: profile.serviceCategories || (profile.serviceCategory ? [profile.serviceCategory] : []),
           address: profile.address,
         });
+        // Sync online status from DB
+        setIsOnline(profile.isOnline || false);
       }
 
       if (statsRes.success) {
@@ -294,6 +383,54 @@ const Dashboard = () => {
               </div>
             </div>
           )}
+
+        {/* Online/Offline Toggle */}
+        <div className="px-4 pt-3 pb-1">
+          <div
+            className="rounded-2xl p-4 flex items-center justify-between transition-all duration-500"
+            style={{
+              background: isOnline
+                ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
+                : 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
+              boxShadow: isOnline
+                ? '0 4px 20px rgba(16, 185, 129, 0.35)'
+                : '0 4px 12px rgba(0, 0, 0, 0.15)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-3 h-3 rounded-full animate-pulse"
+                style={{ backgroundColor: isOnline ? '#a7f3d0' : '#9ca3af' }}
+              />
+              <div>
+                <p className="text-white font-bold text-sm">
+                  {isOnline ? '🟢 You are Online' : '🔴 You are Offline'}
+                </p>
+                <p className="text-white/70 text-xs">
+                  {isOnline ? 'Receiving job alerts • GPS active' : 'Go online to receive jobs'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleToggleOnline}
+              disabled={togglingOnline}
+              className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
+              style={{
+                background: isOnline ? 'rgba(255,255,255,0.2)' : 'white',
+                color: isOnline ? 'white' : '#059669',
+                border: isOnline ? '1px solid rgba(255,255,255,0.3)' : 'none',
+              }}
+            >
+              {togglingOnline ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span>...</span>
+                </div>
+              ) : isOnline ? 'Go Offline' : 'Go Online'}
+            </button>
+          </div>
+        </div>
 
         {/* Stats Cards - Outside Gradient */}
         <div className="px-4 pt-4">

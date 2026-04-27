@@ -121,9 +121,31 @@ const updatePendingSnapshots = async (dateStr) => {
   }
 };
 
+/**
+ * Records a worker subscription payment
+ */
+const recordWorkerSubscription = async (date, amount) => {
+  try {
+    const dateStr = getTodayDateString(date);
+    await PlatformEarning.findOneAndUpdate(
+      { date: dateStr },
+      {
+        $inc: { 
+          totalRevenue: amount,
+          totalWorkerSubscriptionRevenue: amount 
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  } catch (err) {
+    console.error('[EarningTracker] Failed to record worker subscription:', err);
+  }
+};
+
 module.exports = {
   recordBookingEarning,
   recordSettlement,
   recordWithdrawal,
+  recordWorkerSubscription,
   updatePendingSnapshots
 };

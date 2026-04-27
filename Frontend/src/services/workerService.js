@@ -13,11 +13,12 @@ const workerService = {
   },
 
   updateLocation: async (lat, lng) => {
-    // Assuming backend accepts { location: { lat, lng } } or similar
-    // We send partial update if supported, or implementation depends on backend
     return api.put('/workers/profile/location', { lat, lng });
-    // But for suggestion, specific endpoint is cleaner if available. 
-    // If not, we fall back to generic profile update.
+  },
+
+  toggleOnline: async (isOnline, lat, lng) => {
+    const response = await api.post('/workers/toggle-online', { isOnline, lat, lng });
+    return response.data;
   },
 
   getDashboardStats: async () => {
