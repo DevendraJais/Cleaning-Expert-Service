@@ -4,7 +4,12 @@ const withdrawalSchema = new mongoose.Schema({
   vendorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vendor',
-    required: true
+    required: false
+  },
+  workerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Worker',
+    required: false
   },
   amount: {
     type: Number,

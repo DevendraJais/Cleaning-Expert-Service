@@ -212,7 +212,8 @@ const EditProfile = () => {
     });
 
     if (!validationResult.success) {
-      toast.error(validationResult.error.errors[0].message);
+      const errorMessage = validationResult.error.issues?.[0]?.message || "Validation failed";
+      toast.error(errorMessage);
       return;
     }
 

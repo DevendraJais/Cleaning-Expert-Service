@@ -20,6 +20,15 @@ const Wallet = () => {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawForm, setWithdrawForm] = useState({
+    upiId: '',
+    accountNumber: '',
+    ifscCode: '',
+    accountHolderName: ''
+  });
 
   useLayoutEffect(() => {
     const html = document.documentElement;
@@ -52,6 +61,10 @@ const Wallet = () => {
 
       if (walletRes.success) {
         setWallet(walletRes.data);
+        // Pre-fill bank details if available in worker profile (would come from walletRes if included)
+        if (walletRes.workerBankDetails) {
+          setWithdrawForm(walletRes.workerBankDetails);
+        }
       }
 
       if (txnRes.success) {
@@ -70,9 +83,33 @@ const Wallet = () => {
     try {
       setPayoutLoading(bookingId);
       await workerWalletService.requestPayout(bookingId);
-      toast.success('Payout request sent to vendor');
+      toast.success('Payout request sent');
     } catch (error) {
       toast.error(error.message || 'Failed to request payout');
+    } finally {
+      setPayoutLoading(false);
+    }
+  };
+
+  const handleWithdrawalRequest = async (e) => {
+    e.preventDefault();
+    if (!withdrawAmount || Number(withdrawAmount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+    if (Number(withdrawAmount) > wallet.balance) {
+      toast.error('Insufficient balance');
+      return;
+    }
+
+    try {
+      setPayoutLoading(true);
+      await workerWalletService.requestWithdrawal(withdrawAmount, withdrawForm);
+      toast.success('Withdrawal request submitted successfully!');
+      setWithdrawModalOpen(false);
+      loadWalletData(); // Refresh balance
+    } catch (error) {
+      toast.error(error.message || 'Failed to submit request');
     } finally {
       setPayoutLoading(false);
     }
@@ -86,8 +123,10 @@ const Wallet = () => {
   const getTransactionIcon = (type) => {
     switch (type) {
       case 'worker_payment':
+      case 'earnings_credit':
         return <FiArrowDown className="w-5 h-5 text-green-500" />;
       case 'cash_collected':
+      case 'withdrawal':
         return <FiArrowUp className="w-5 h-5 text-red-500" />;
       default:
         return <FiDollarSign className="w-5 h-5 text-gray-500" />;
@@ -97,9 +136,12 @@ const Wallet = () => {
   const getTransactionLabel = (type) => {
     switch (type) {
       case 'worker_payment':
-        return 'Payment Received';
+      case 'earnings_credit':
+        return 'Earnings Received';
       case 'cash_collected':
         return 'Cash Collected';
+      case 'withdrawal':
+        return 'Withdrawal Request';
       default:
         return type.replace('_', ' ');
     }
@@ -126,8 +168,8 @@ const Wallet = () => {
   };
 
   const handleTransactionClick = (txn) => {
-    // Only open details modal for worker_payment transactions
-    if (txn.type === 'worker_payment') {
+    // Only open details modal for worker_payment or earnings_credit transactions
+    if (txn.type === 'worker_payment' || txn.type === 'earnings_credit') {
       setSelectedTransaction(txn);
     }
   };
@@ -139,7 +181,7 @@ const Wallet = () => {
 
   // Lock body scroll when modal is open
   useEffect(() => {
-    if (selectedTransaction || imageModalOpen) {
+    if (selectedTransaction || imageModalOpen || withdrawModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -148,7 +190,7 @@ const Wallet = () => {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [selectedTransaction, imageModalOpen]);
+  }, [selectedTransaction, imageModalOpen, withdrawModalOpen]);
 
   if (loading) {
     return <LogoLoader />;
@@ -162,17 +204,22 @@ const Wallet = () => {
         {/* Balance Card */}
         <div className="rounded-2xl p-6 shadow-xl relative overflow-hidden mb-6 bg-gradient-to-br from-teal-600 to-teal-800">
           <div className="relative z-10 text-white">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start mb-6">
               <div>
                 <p className="text-white/80 text-sm font-medium mb-1">Available Balance</p>
-                <p className="text-3xl font-bold mb-4">₹{wallet.balance?.toLocaleString() || 0}</p>
+                <p className="text-4xl font-bold">₹{wallet.balance?.toLocaleString() || 0}</p>
               </div>
-              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-                <FiDollarSign className="w-6 h-6 text-white" />
-              </div>
+              <button 
+                onClick={() => setWithdrawModalOpen(true)}
+                disabled={wallet.balance <= 0}
+                className={`px-4 py-2 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all flex items-center gap-2 ${wallet.balance > 0 ? 'bg-white text-teal-700' : 'bg-white/20 text-white/50 cursor-not-allowed'}`}
+              >
+                <FiArrowUp className="w-4 h-4" />
+                Withdraw
+              </button>
             </div>
-            <div className="w-full bg-white/10 text-white py-2 rounded-xl font-medium text-xs text-center border border-white/20">
-              Payments are managed by your Vendor
+            <div className="w-full bg-white/10 text-white py-2 rounded-xl font-medium text-[10px] text-center border border-white/20 uppercase tracking-widest">
+              Direct Settlement from Admin
             </div>
           </div>
         </div>
@@ -201,7 +248,7 @@ const Wallet = () => {
                     ) : (
                       <>
                         <FiBell className="w-3.5 h-3.5" />
-                        Ask Vendor
+                        Request Payment
                       </>
                     )}
                   </button>
@@ -482,8 +529,141 @@ const Wallet = () => {
         )}
       </AnimatePresence>
 
+      {/* Withdrawal Modal */}
+      <AnimatePresence>
+        {withdrawModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-end sm:items-center justify-center p-4"
+            onClick={() => setWithdrawModalOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-br from-teal-600 to-teal-700 text-white px-6 py-5 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg">Request Withdrawal</h3>
+                  <p className="text-xs text-white/80">Funds will be sent to your bank/UPI</p>
+                </div>
+                <button
+                  onClick={() => setWithdrawModalOpen(false)}
+                  className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleWithdrawalRequest} className="p-6 space-y-4">
+                <div className="bg-teal-50 rounded-2xl p-4 border border-teal-100 mb-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-semibold text-teal-600 uppercase tracking-wider">Available Balance</span>
+                    <span className="text-lg font-black text-teal-800">₹{wallet.balance.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase ml-1">Amount to Withdraw</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max={wallet.balance}
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      placeholder="Enter amount"
+                      className="w-full pl-8 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-teal-500 outline-none font-bold text-gray-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-3 tracking-widest border-b border-gray-100 pb-2">Payout Method Details</p>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">UPI ID (Optional)</label>
+                      <input
+                        type="text"
+                        value={withdrawForm.upiId}
+                        onChange={(e) => setWithdrawForm({...withdrawForm, upiId: e.target.value})}
+                        placeholder="example@upi"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none text-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Account Number</label>
+                        <input
+                          type="text"
+                          value={withdrawForm.accountNumber}
+                          onChange={(e) => setWithdrawForm({...withdrawForm, accountNumber: e.target.value})}
+                          placeholder="Bank A/C No"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">IFSC Code</label>
+                        <input
+                          type="text"
+                          value={withdrawForm.ifscCode}
+                          onChange={(e) => setWithdrawForm({...withdrawForm, ifscCode: e.target.value})}
+                          placeholder="IFSC"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Account Holder Name</label>
+                      <input
+                        type="text"
+                        value={withdrawForm.accountHolderName}
+                        onChange={(e) => setWithdrawForm({...withdrawForm, accountHolderName: e.target.value})}
+                        placeholder="Full Name as per Bank"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-3 rounded-xl flex gap-3 items-start mt-4">
+                  <FiInfo className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-[10px] text-blue-700 leading-relaxed">
+                    Withdrawal requests are processed within 24-48 hours. Please ensure your bank/UPI details are correct.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={payoutLoading}
+                  className="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+                >
+                  {payoutLoading ? (
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  ) : (
+                    <>
+                      <FiDollarSign className="w-5 h-5" />
+                      Submit Request
+                    </>
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Hide BottomNav when modal is open */}
-      {!selectedTransaction && !imageModalOpen && <BottomNav />}
+      {!selectedTransaction && !imageModalOpen && !withdrawModalOpen && <BottomNav />}
     </div>
   );
 };

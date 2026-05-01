@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { themeColors } from '../../../../../theme';
 
-const VendorSearchModal = ({ isOpen, onClose, currentStep, acceptedVendor, onRetry }) => {
+const VendorSearchModal = ({ isOpen, onClose, currentStep, acceptedVendor, onRetry, bookingModel = 'vendor' }) => {
   const [dots, setDots] = useState('.');
 
   useEffect(() => {
@@ -74,7 +74,7 @@ const VendorSearchModal = ({ isOpen, onClose, currentStep, acceptedVendor, onRet
 
             {/* Status Text */}
             <div className="text-center relative z-20 px-4 mb-4">
-              <h3 className="text-xl font-black text-gray-900 mb-2">Searching nearby {currentStep === 'waiting' ? 'professionals' : 'experts'}</h3>
+              <h3 className="text-xl font-black text-gray-900 mb-2">Searching nearby {bookingModel === 'worker' ? 'workers' : 'vendors'}</h3>
               <p className="text-gray-400 text-xs font-bold uppercase tracking-widest leading-relaxed">
                 Searching within 10km radius{dots}
               </p>
@@ -83,7 +83,7 @@ const VendorSearchModal = ({ isOpen, onClose, currentStep, acceptedVendor, onRet
             {/* Bottom Pill - Now positioned relative to avoid overlap */}
             <div className="flex justify-center mt-2">
               <div className="px-4 py-2 bg-gray-50 rounded-full border border-gray-100 text-[10px] font-black uppercase tracking-tighter text-gray-400">
-                Searching for available providers
+                Searching for available {bookingModel}s
               </div>
             </div>
 
@@ -146,9 +146,9 @@ const VendorSearchModal = ({ isOpen, onClose, currentStep, acceptedVendor, onRet
               </svg>
             </div>
 
-            <h3 className="text-2xl font-black text-gray-900 mb-2 italic">NO EXPERT FOUND</h3>
+            <h3 className="text-2xl font-black text-gray-900 mb-2 italic">NO {bookingModel.toUpperCase()} FOUND</h3>
             <p className="text-gray-400 text-[10px] text-center mb-10 px-8 font-black uppercase tracking-widest leading-relaxed">
-              We couldn't find any available professionals in your area right now.
+              We couldn't find any available {bookingModel}s in your area right now.
             </p>
 
             <button

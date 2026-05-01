@@ -26,6 +26,15 @@ const workerWalletService = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
+  },
+  
+  requestWithdrawal: async (amount, bankDetails) => {
+    try {
+      const response = await api.post('/workers/wallet/withdraw', { amount, bankDetails });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
   }
 };
 

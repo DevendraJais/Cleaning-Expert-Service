@@ -137,8 +137,78 @@ const requestPayout = async (req, res) => {
   }
 };
 
+const Withdrawal = require('../../models/Withdrawal');
+
+/**
+ * Request withdrawal of entire wallet balance to admin
+ */
+const requestWithdrawal = async (req, res) => {
+  try {
+    const workerId = req.user.id;
+    const { amount, bankDetails } = req.body;
+
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
+      return res.status(404).json({ success: false, message: 'Worker not found' });
+    }
+
+    const withdrawAmount = Number(amount);
+    if (!withdrawAmount || withdrawAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid withdrawal amount' });
+    }
+
+    if (worker.wallet.balance < withdrawAmount) {
+      return res.status(400).json({ success: false, message: 'Insufficient balance' });
+    }
+
+    // Check for existing pending withdrawal
+    const existingPending = await Withdrawal.findOne({ 
+      workerId, 
+      status: 'pending' 
+    });
+    
+    if (existingPending) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'You already have a pending withdrawal request' 
+      });
+    }
+
+    // Create withdrawal request
+    const withdrawal = await Withdrawal.create({
+      workerId,
+      amount: withdrawAmount,
+      bankDetails: bankDetails || worker.bankDetails, // Use provided or saved bank details
+      status: 'pending',
+      requestDate: new Date()
+    });
+
+    // Notify Admin
+    const { createNotification } = require('../notificationControllers/notificationController');
+    await createNotification({
+      type: 'withdrawal_requested',
+      title: '💰 New Withdrawal Request',
+      message: `Worker ${worker.name} has requested a withdrawal of ₹${withdrawAmount}.`,
+      relatedId: withdrawal._id,
+      relatedType: 'withdrawal',
+      priority: 'high'
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Withdrawal request submitted successfully',
+      data: withdrawal
+    });
+
+  } catch (error) {
+    console.error('Request withdrawal error:', error);
+    res.status(500).json({ success: false, message: 'Failed to submit withdrawal request' });
+  }
+};
+
 module.exports = {
   getWallet,
   getTransactions,
-  requestPayout
+  requestPayout,
+  requestWithdrawal
 };

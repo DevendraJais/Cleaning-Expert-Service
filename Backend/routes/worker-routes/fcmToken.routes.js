@@ -21,35 +21,36 @@ const MAX_TOKENS = 10; // Maximum tokens per platform
 router.post('/save', authenticate, async (req, res) => {
   try {
     const { token, platform = 'web' } = req.body;
-    const workerId = req.user._id;
+    const workerId = req.user._id || req.user.id;
 
     if (!token) {
       return res.status(400).json({ success: false, error: 'Token is required' });
     }
 
-    // Use $addToSet to ensure uniqueness (prevent duplicates efficiently)
-    const updateQuery = platform === 'mobile'
-      ? { $addToSet: { fcmTokenMobile: token } }
-      : { $addToSet: { fcmTokens: token } };
-
-    const worker = await Worker.findByIdAndUpdate(workerId, updateQuery, { new: true });
-
-    // Optional: Trim array if too long (separate operation to keep response fast and main op safe)
-    // Only verify if length > MAX_TOKENS
-    const currentTokens = platform === 'mobile' ? worker.fcmTokenMobile : worker.fcmTokens;
-    if (currentTokens && currentTokens.length > MAX_TOKENS) {
-      const sliceQuery = platform === 'mobile'
-        ? { $push: { fcmTokenMobile: { $each: [], $slice: MAX_TOKENS } } } // Keep last 10 (or first 10?) - slice with positive keeps first N, negative keeps last N.
-        // Wait, $slice on existing array requires $push with empty $each.
-        // Actually, easiest to just keep it simple: $addToSet. 
-        // Array growth is acceptable for now compared to duplicates issue.
-        // We can just leave it as $addToSet.
-        : { $addToSet: { fcmTokens: token } };
-    }
+    // Find the worker
+    const worker = await Worker.findById(workerId);
 
     if (!worker) {
+      console.error(`[FCM] Worker not found for ID: ${workerId}`);
       return res.status(404).json({ success: false, error: 'Worker not found' });
     }
+
+    // Update tokens based on platform
+    if (platform === 'mobile') {
+      if (!worker.fcmTokenMobile) worker.fcmTokenMobile = [];
+      if (!worker.fcmTokenMobile.includes(token)) {
+        worker.fcmTokenMobile.push(token);
+      }
+    } else {
+      if (!worker.fcmTokens) worker.fcmTokens = [];
+      if (!worker.fcmTokens.includes(token)) {
+        worker.fcmTokens.push(token);
+      }
+    }
+
+    // Save with validation
+    await worker.save();
+    console.log(`[FCM] ✅ Token saved for worker: ${workerId} (${platform})`);
 
     // Remove this token from User and Vendor collections to prevent cross-account notifications
     // COMMENTED OUT to allow testing on same device
@@ -72,7 +73,11 @@ router.post('/save', authenticate, async (req, res) => {
     res.json({ success: true, message: 'FCM token saved successfully' });
   } catch (error) {
     console.error('Error saving FCM token:', error);
-    res.status(500).json({ success: false, error: 'Failed to save FCM token' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to save FCM token',
+      details: error.message 
+    });
   }
 });
 
@@ -161,7 +166,8 @@ router.post('/test', authenticate, async (req, res) => {
       return res.json({ success: false, error: 'No FCM tokens found for worker' });
     }
 
-    const response = await sendPushNotification(uniqueTokens, {
+    const response = await sendPushNotification(worker, {
+      notificationId: 'test-notification',
       title: '🔔 Test Notification',
       body: 'This is a test notification for worker!',
       data: {

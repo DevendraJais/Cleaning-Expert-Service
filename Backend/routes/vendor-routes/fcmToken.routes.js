@@ -173,7 +173,8 @@ router.post('/test', authenticate, async (req, res) => {
       return res.json({ success: false, error: 'No FCM tokens found for vendor' });
     }
 
-    const response = await sendPushNotification(uniqueTokens, {
+    const response = await sendPushNotification(vendor, {
+      notificationId: 'test-notification',
       title: '🔔 Test Notification',
       body: 'This is a test notification for vendor!',
       data: {

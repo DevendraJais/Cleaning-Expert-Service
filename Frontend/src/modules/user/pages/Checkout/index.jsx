@@ -40,6 +40,7 @@ const Checkout = () => {
   const [addressDetails, setAddressDetails] = useState(null);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [userPhone, setUserPhone] = useState('');
+  const [bookingModel, setBookingModel] = useState('vendor');
 
   // Custom Contact State (for this booking only)
   const [contactDetails, setContactDetails] = useState({ name: '', phone: '' });
@@ -146,6 +147,7 @@ const Checkout = () => {
             // Set Config
             setVisitedFee(response.settings?.visitedCharges || 29);
             setGstPercentage(response.settings?.serviceGstPercentage || 18);
+            setBookingModel(response.bookingModel || 'vendor');
 
             // Set Addresses
             if (response.user?.addresses?.length > 0) {
@@ -542,7 +544,7 @@ const Checkout = () => {
       }
 
       // Create booking request
-      toast.loading('Searching for nearby vendors...');
+      toast.loading(`Searching for nearby ${bookingModel}s...`);
 
       // Ensure serviceId is a string (handle populated cart data)
       const serviceId = typeof firstItem.serviceId === 'object'
@@ -577,7 +579,7 @@ const Checkout = () => {
         scheduledTime: finalTimeDisplay,
         timeSlot: timeSlotObj,
         // userNotes: null, // Removed per request
-        paymentMethod: amountToPay === 0 ? 'plan_benefit' : 'pay_at_home',
+        paymentMethod: amountToPay === 0 ? 'plan_benefit' : paymentMethod,
         amount: amountToPay,
 
         // Pass Full Breakdown to Backend
@@ -654,9 +656,21 @@ const Checkout = () => {
           setTimeout(() => window.location.reload(), 2000);
         }
       } else {
-        // Move to waiting state - alerts sent to nearby vendors
-        setCurrentStep('waiting');
-        toast.success('Finding nearby vendors... Alerts sent to vendors within 10km!');
+        // If online payment is selected, trigger it before moving to waiting state
+        if (paymentMethod === 'online' && amountToPay > 0) {
+          // We need to pass the booking request to the payment handler
+          // The handleOnlinePayment function uses acceptedVendor and bookingRequest from state
+          // So we ensure they are set first
+          setCurrentStep('payment'); // New step for payment processing
+          toast.dismiss();
+
+          // Custom inline payment trigger to avoid state timing issues
+          await handlePaymentForBooking(booking);
+        } else {
+          // Move to waiting state - alerts sent to nearby partners
+          setCurrentStep('waiting');
+          toast.success(`Finding nearby ${bookingModel}s... Alerts sent to ${bookingModel}s within 10km!`);
+        }
       }
 
       // REMOVED local setCartItems([]) - The summary should remain visible while searching
@@ -768,6 +782,85 @@ const Checkout = () => {
     } catch (error) {
       toast.dismiss();
       toast.error('Failed to process payment');
+    }
+  };
+
+  const handlePaymentForBooking = async (booking) => {
+    try {
+      toast.loading('Creating payment order...');
+      const orderResponse = await paymentService.createOrder(booking._id);
+      toast.dismiss();
+
+      if (!orderResponse.success) {
+        toast.error(orderResponse.message || 'Failed to create payment order');
+        setCurrentStep('details');
+        setShowVendorModal(false);
+        return;
+      }
+
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!razorpayKey || !window.Razorpay) {
+        toast.error('Payment gateway not ready');
+        setCurrentStep('details');
+        setShowVendorModal(false);
+        return;
+      }
+
+      const options = {
+        key: razorpayKey,
+        amount: orderResponse.data.amount * 100,
+        currency: orderResponse.data.currency || 'INR',
+        order_id: orderResponse.data.orderId,
+        name: 'Truliq',
+        description: `Payment for ${booking.serviceName || 'Service'}`,
+        handler: async function (response) {
+          try {
+            toast.loading('Verifying payment...');
+            const verifyResponse = await paymentService.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            toast.dismiss();
+
+            if (verifyResponse.success) {
+              toast.success('Payment Successful!');
+              // Now move to waiting state to find partners
+              setCurrentStep('waiting');
+              toast.success(`Finding nearby ${bookingModel}s... Alerts sent!`);
+            } else {
+              toast.error('Payment verification failed');
+              setCurrentStep('details');
+              setShowVendorModal(false);
+            }
+          } catch (err) {
+            toast.dismiss();
+            toast.error('Failed to verify payment');
+            setCurrentStep('details');
+            setShowVendorModal(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            toast.error('Payment cancelled');
+            setCurrentStep('details');
+            setShowVendorModal(false);
+          }
+        },
+        prefill: {
+          name: contactDetails.name || 'User',
+          phone: contactDetails.phone || userPhone
+        },
+        theme: { color: themeColors.button }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      toast.dismiss();
+      toast.error('Failed to process payment');
+      setCurrentStep('details');
+      setShowVendorModal(false);
     }
   };
 
@@ -1391,7 +1484,7 @@ const Checkout = () => {
           <div>
             <h4 className="text-sm font-bold text-blue-900 mb-1">Note</h4>
             <p className="text-sm text-blue-800 leading-relaxed font-medium">
-              This is a base booking cost. Additional service cost is decided by the vendor after service bill preparation.
+              This is a base booking cost. Additional service cost is decided by the {bookingModel} after service bill preparation.
             </p>
           </div>
         </div>
@@ -1453,7 +1546,7 @@ const Checkout = () => {
           </div>
           {bookingType === 'instant' && (
             <p className="text-xs text-center text-green-600 font-medium mt-1 mb-1">
-              <span className="font-bold">⚡ Priority Service:</span> Vendor arrives in ~45 mins
+              <span className="font-bold">⚡ Priority Service:</span> {bookingModel === 'worker' ? 'Worker' : 'Vendor'} arrives in ~45 mins
             </p>
           )}
         </div>
@@ -1539,12 +1632,12 @@ const Checkout = () => {
             className="w-full text-white py-3 rounded-lg text-base font-semibold transition-colors disabled:opacity-50 shadow-lg shadow-teal-500/30"
             style={{ backgroundColor: themeColors.button }}
           >
-            {searchingVendors ? 'Searching for vendors...' :
+            {searchingVendors ? `Searching for ${bookingModel}s...` :
               currentStep === 'payment' ? (totalAmount === 0 ? 'Confirm Booking (Free)' : (paymentMethod === 'online' ? 'Proceed to Pay' : 'Confirm Booking')) :
                 plan ? 'Proceed to Payment' :
-                  bookingType === 'instant' ? 'Find nearby vendors now' :
+                  bookingType === 'instant' ? `Find nearby ${bookingModel}s now` :
                     (selectedDate && selectedTime && houseNumber ?
-                      'Find nearby vendors' :
+                      `Find nearby ${bookingModel}s` :
                       (houseNumber || addressDetails) ? 'Select Time Slot' : 'Add address to proceed')}
           </button>
         </div>
@@ -1566,6 +1659,7 @@ const Checkout = () => {
         }}
         currentStep={currentStep}
         acceptedVendor={acceptedVendor}
+        bookingModel={bookingModel}
         onRetry={() => {
           handleSearchVendors();
         }}

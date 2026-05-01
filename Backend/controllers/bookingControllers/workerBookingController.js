@@ -752,20 +752,42 @@ const addWorkerNotes = async (req, res) => {
     });
   }
 };
-
 /**
  * Respond to job (Accept/Reject)
  */
 const respondToJob = async (req, res) => {
-  try {
-    const workerId = req.user.id;
-    const { id } = req.params;
-    const { status } = req.body; // 'ACCEPTED' or 'REJECTED'
+  const { id } = req.params;
+  const { status } = req.body;
+  const workerId = req.user.id;
 
-    const booking = await Booking.findOne({ _id: id, workerId });
+  console.log(`[WorkerAction] respondToJob - ID: ${id}, Status: ${status}, Worker: ${workerId}`);
+
+  try {
+    // Find the booking by ID
+    // In Direct Worker Model, workerId might not be set yet on the Booking itself
+    const booking = await Booking.findById(id);
 
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    // Check if job is already taken by someone else
+    if (booking.workerId && booking.workerId.toString() !== workerId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'This job has already been accepted by another professional.'
+      });
+    }
+
+    // Security: Check if this worker was actually notified/requested for this booking
+    // Optional but recommended for production
+    const BookingRequest = require('../../models/BookingRequest');
+    const request = await BookingRequest.findOne({ bookingId: id, workerId });
+    if (!request && !booking.workerId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to respond to this job.'
+      });
     }
 
     // Idempotency check: If already in desired state, return success without re-notifying
@@ -779,6 +801,8 @@ const respondToJob = async (req, res) => {
 
     if (status === 'ACCEPTED') {
       booking.status = BOOKING_STATUS.ASSIGNED;
+      booking.workerId = workerId; // Assign the worker
+      booking.bookingModel = 'worker'; // Ensure model is set
       booking.workerAcceptedAt = new Date();
       booking.workerResponse = 'ACCEPTED';
 
@@ -794,17 +818,50 @@ const respondToJob = async (req, res) => {
         relatedType: 'booking'
       });
 
+      // Fetch worker details for personalized notification
+      const Worker = require('../../models/Worker');
+      const worker = await Worker.findById(workerId).select('name phone profilePhoto rating');
+
       // Notify User
       await createNotification({
         userId: booking.userId,
         type: 'worker_accepted',
-        title: 'Worker Confirmed',
-        message: 'The assigned professional has accepted your booking.',
+        title: 'Professional Confirmed!',
+        message: `${worker?.name || 'A professional'} has accepted your booking and is preparing for the job.`,
         relatedId: booking._id,
         relatedType: 'booking',
         priority: 'high',
         pushData: { type: 'worker_accepted', bookingId: booking._id.toString(), link: `/user/booking/${booking._id}` }
       });
+
+      // --- SOCKET EMISSION ---
+      // Notify user via socket so the searching modal closes
+      const io = req.app.get('io');
+      if (io && worker) {
+        io.to(`user_${booking.userId}`).emit('booking_accepted', {
+          bookingId: booking._id,
+          worker: {
+            id: worker._id,
+            name: worker.name,
+            phone: worker.phone,
+            profilePhoto: worker.profilePhoto,
+            rating: worker.rating
+          }
+        });
+      }
+
+      // Notify worker for confirmation
+      await createNotification({
+        workerId: workerId,
+        type: 'job_accepted',
+        title: 'Job Confirmed!',
+        message: `You have successfully accepted booking #${booking.bookingNumber}. Scheduled for ${new Date(booking.scheduledDate).toLocaleDateString()} at ${booking.scheduledTime}.`,
+        relatedId: booking._id,
+        relatedType: 'booking',
+        priority: 'high',
+        pushData: { type: 'job_accepted', bookingId: booking._id.toString(), link: `/worker/job/${booking._id}` }
+      });
+
 
     } else if (status === 'REJECTED') {
       booking.workerId = null;

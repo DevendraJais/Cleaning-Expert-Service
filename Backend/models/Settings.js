@@ -172,6 +172,11 @@ const settingsSchema = new mongoose.Schema({
   isOnlinePaymentEnabled: {
     type: Boolean,
     default: true
+  },
+  bookingModel: {
+    type: String,
+    enum: ['vendor', 'worker'],
+    default: 'worker'
   }
 }, { timestamps: true });
 

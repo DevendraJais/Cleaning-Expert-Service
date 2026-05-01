@@ -1,5 +1,6 @@
 const Booking = require('../../models/Booking');
 const Vendor = require('../../models/Vendor');
+const Worker = require('../../models/Worker');
 const Transaction = require('../../models/Transaction');
 const { PAYMENT_STATUS, BOOKING_STATUS } = require('../../utils/constants');
 const { recordBookingEarning } = require('../../services/earningTrackerService');
@@ -166,12 +167,18 @@ exports.initiateCashCollection = async (req, res) => {
       };
 
       // 2. Update extraCharges (Backend calculation)
-      booking.extraCharges = extraItems.map(item => ({
-        name: item.name || item.title,
-        quantity: Number(item.qty) || Number(item.quantity) || 1,
-        price: Number(item.price) || 0,
-        total: (Number(item.qty) || Number(item.quantity) || 1) * (Number(item.price) || 0)
-      }));
+      booking.extraCharges = extraItems.map(item => {
+        const name = item.name || item.title || 'Extra Item';
+        const qty = Number(item.qty) || Number(item.quantity) || 1;
+        const price = Number(item.price) || 0;
+
+        return {
+          name,
+          quantity: qty,
+          price,
+          total: qty * price
+        };
+      });
 
       // 3. Update extraChargesTotal
       booking.extraChargesTotal = booking.extraCharges.reduce((sum, item) => sum + item.total, 0);
@@ -196,16 +203,20 @@ exports.initiateCashCollection = async (req, res) => {
     await booking.save();
 
     // Emit socket event to user with full bill details and OTP
-    const io = req.app.get('io');
-    if (io) {
-      io.to(`user_${booking.userId}`).emit('booking_updated', {
-        bookingId: booking._id,
-        finalAmount: booking.finalAmount,
-        customerConfirmationOTP: booking.customerConfirmationOTP,
-        paymentOtp: booking.paymentOtp,
-        workDoneDetails: booking.workDoneDetails,
-        qrPaymentInitiated: false
-      });
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user_${booking.userId}`).emit('booking_updated', {
+          bookingId: booking._id,
+          finalAmount: booking.finalAmount,
+          customerConfirmationOTP: booking.customerConfirmationOTP,
+          paymentOtp: booking.paymentOtp,
+          workDoneDetails: booking.workDoneDetails,
+          qrPaymentInitiated: false
+        });
+      }
+    } catch (socketErr) {
+      console.error('[InitiateCash] Socket emission failed:', socketErr.message);
     }
 
     // Send Push Notification with OTP
@@ -233,7 +244,10 @@ exports.initiateCashCollection = async (req, res) => {
     });
   } catch (error) {
     console.error('Initiate cash collection error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 
@@ -354,80 +368,141 @@ exports.confirmCashCollection = async (req, res) => {
 
     await booking.save();
 
-    // Update Vendor Wallet
+    // Update Wallet (Vendor or Worker)
     const vendorId = booking.vendorId;
-    const vendor = await Vendor.findById(vendorId).lean();
-    let newDues = 0;
+    const workerId = booking.workerId;
 
-    if (vendor) {
-      newDues = (vendor.wallet?.dues || 0) + grandTotal;
-      const newEarnings = (vendor.wallet?.earnings || 0) + vendorEarning;
-      const cashLimit = vendor.wallet?.cashLimit || 10000;
-      const netOwed = newDues - newEarnings;
-      const isOverLimit = netOwed > cashLimit;
+    if (vendorId) {
+      const vendor = await Vendor.findById(vendorId).lean();
+      let newDues = 0;
+      if (vendor) {
+        newDues = (vendor.wallet?.dues || 0) + grandTotal;
+        const newEarnings = (vendor.wallet?.earnings || 0) + vendorEarning;
+        const cashLimit = vendor.wallet?.cashLimit || 10000;
+        const netOwed = newDues - newEarnings;
+        const isOverLimit = netOwed > cashLimit;
 
-      const walletUpdate = {
-        $inc: {
-          'wallet.dues': grandTotal,
-          'wallet.earnings': vendorEarning,
-          'wallet.totalCashCollected': grandTotal
-        }
-      };
-
-      if (isOverLimit) {
-        walletUpdate.$set = {
-          'wallet.isBlocked': true,
-          'wallet.blockedAt': new Date(),
-          'wallet.blockReason': `Cash limit exceeded. Net owed: ₹${netOwed.toFixed(2)}, Limit: ₹${cashLimit}`
-        };
-      }
-
-      await Vendor.findByIdAndUpdate(vendorId, walletUpdate, { runValidators: false });
-
-      // Record Transaction - Cash Collected
-      try {
-        await Transaction.create({
-          vendorId,
-          userId: booking.userId,
-          bookingId: booking._id,
-          amount: grandTotal,
-          type: 'cash_collected',
-          paymentMethod: 'cash collected',
-          description: `Cash ₹${grandTotal} collected for booking ${booking.bookingNumber}`,
-          status: 'completed',
-          metadata: {
-            type: 'dues_increase',
-            collectedBy: userRole,
-            billId: bill?._id?.toString(),
-            vendorEarning,
-            companyRevenue: bill?.companyRevenue
+        const walletUpdate = {
+          $inc: {
+            'wallet.dues': grandTotal,
+            'wallet.earnings': vendorEarning,
+            'wallet.totalCashCollected': grandTotal
           }
-        });
-      } catch (txnErr) {
-        console.error('[ConfirmCash] Transaction 1 (cash_collected) failed:', txnErr);
-        // We don't throw here to ensure the payment status remains 'completed' since booking.save and Vendor update already finished
-      }
+        };
 
-      // Record Transaction - Earnings Credit
-      if (vendorEarning > 0) {
+        if (isOverLimit) {
+          walletUpdate.$set = {
+            'wallet.isBlocked': true,
+            'wallet.blockedAt': new Date(),
+            'wallet.blockReason': `Cash limit exceeded. Net owed: ₹${netOwed.toFixed(2)}, Limit: ₹${cashLimit}`
+          };
+        }
+
+        await Vendor.findByIdAndUpdate(vendorId, walletUpdate, { runValidators: false });
+
+        // Record Transaction - Cash Collected
         try {
           await Transaction.create({
             vendorId,
+            userId: booking.userId,
             bookingId: booking._id,
-            amount: vendorEarning,
-            type: 'earnings_credit',
-            paymentMethod: 'system',
-            description: `Earnings ₹${vendorEarning} credited for booking ${booking.bookingNumber}`,
+            amount: grandTotal,
+            type: 'cash_collected',
+            paymentMethod: 'cash collected',
+            description: `Cash ₹${grandTotal} collected for booking ${booking.bookingNumber}`,
             status: 'completed',
             metadata: {
-              type: 'earnings_increase',
+              type: 'dues_increase',
+              collectedBy: userRole,
               billId: bill?._id?.toString(),
-              serviceEarning: bill?.vendorServiceEarning,
-              partsEarning: bill?.vendorPartsEarning
+              vendorEarning,
+              companyRevenue: bill?.companyRevenue
             }
           });
         } catch (txnErr) {
-          console.error('[ConfirmCash] Transaction 2 (earnings_credit) failed:', txnErr);
+          console.error('[ConfirmCash] Transaction 1 (cash_collected) failed:', txnErr);
+        }
+
+        // Record Transaction - Earnings Credit
+        if (vendorEarning > 0) {
+          try {
+            await Transaction.create({
+              vendorId,
+              bookingId: booking._id,
+              amount: vendorEarning,
+              type: 'earnings_credit',
+              paymentMethod: 'system',
+              description: `Earnings ₹${vendorEarning} credited for booking ${booking.bookingNumber}`,
+              status: 'completed',
+              metadata: {
+                type: 'earnings_increase',
+                billId: bill?._id?.toString(),
+                serviceEarning: bill?.vendorServiceEarning,
+                partsEarning: bill?.vendorPartsEarning
+              }
+            });
+          } catch (txnErr) {
+            console.error('[ConfirmCash] Transaction 2 (earnings_credit) failed:', txnErr);
+          }
+        }
+      }
+    } else if (workerId) {
+      // Direct Worker Flow
+      const worker = await Worker.findById(workerId).lean();
+      if (worker) {
+        // For cash collection: Worker gets the money in hand, so they owe Admin the difference (Total - Earning)
+        // OR simply track collected cash and earning separately.
+        // In your walkthrough: Paisa Worker ki jeb mein gaya. Admin ka share Worker ke wallet mein "Dues" (Negative) banega.
+
+        const workerEarning = vendorEarning; // Reusing variable for consistency
+        const adminShare = grandTotal - workerEarning;
+
+        // LOGIC: 
+        // 1. Worker collected CASH: They have their share (workerEarning) in hand.
+        //    We only increase 'dues' by the adminShare (what they owe admin).
+        //    We do NOT increase 'balance' (withdrawable money) because they already have it.
+        // 2. We still track 'earnings' for lifetime reporting.
+
+        const walletUpdate = {
+          $inc: {
+            'wallet.totalCashCollected': grandTotal,
+            'wallet.earnings': workerEarning,
+            'wallet.dues': adminShare // Worker owes Admin the commission
+          }
+        };
+
+        await Worker.findByIdAndUpdate(workerId, walletUpdate, { runValidators: false });
+
+        // Record Transactions for Worker
+        try {
+          // 1. Cash Collected (Increases Dues)
+          await Transaction.create({
+            workerId,
+            userId: booking.userId,
+            bookingId: booking._id,
+            amount: grandTotal,
+            type: 'cash_collected',
+            paymentMethod: 'cash collected',
+            description: `Cash ₹${grandTotal} collected by worker for booking ${booking.bookingNumber}`,
+            status: 'completed',
+            metadata: { type: 'dues_increase', collectedBy: 'worker' }
+          });
+
+          // 2. Earnings Credit (Increases Balance)
+          if (workerEarning > 0) {
+            await Transaction.create({
+              workerId,
+              bookingId: booking._id,
+              amount: workerEarning,
+              type: 'earnings_credit',
+              paymentMethod: 'system',
+              description: `Earnings ₹${workerEarning} credited for booking ${booking.bookingNumber}`,
+              status: 'completed',
+              metadata: { type: 'earnings_increase' }
+            });
+          }
+        } catch (txnErr) {
+          console.error('[ConfirmCash] Worker Transactions failed:', txnErr);
         }
       }
     }
@@ -559,14 +634,14 @@ exports.verifyOnlinePayment = async (req, res) => {
         let vendorEarning = 0;
         if (bill) {
           vendorEarning = bill.vendorTotalEarning;
-          
+
           // Sync booking fields from bill to ensure data consistency
           booking.basePrice = bill.originalServiceBase;
           booking.tax = bill.originalGST + bill.vendorServiceGST + bill.partsGST;
           booking.visitingCharges = bill.visitingCharges;
           booking.finalAmount = bill.grandTotal;
           booking.userPayableAmount = bill.grandTotal;
-          
+
           bill.status = 'paid';
           bill.paidAt = new Date();
           await bill.save();
@@ -574,11 +649,24 @@ exports.verifyOnlinePayment = async (req, res) => {
           vendorEarning = booking.finalAmount * 0.8;
         }
 
+        // 2. Handle Earnings & Wallet (Vendor or Worker)
         const vendorId = booking.vendorId;
-        const Vendor = require('../../models/Vendor');
-        await Vendor.findByIdAndUpdate(vendorId, {
-          $inc: { 'wallet.earnings': vendorEarning }
-        });
+        const workerId = booking.workerId;
+
+        if (vendorId) {
+          const Vendor = require('../../models/Vendor');
+          await Vendor.findByIdAndUpdate(vendorId, {
+            $inc: { 'wallet.earnings': vendorEarning }
+          });
+        } else if (workerId) {
+          const Worker = require('../../models/Worker');
+          await Worker.findByIdAndUpdate(workerId, {
+            $inc: {
+              'wallet.earnings': vendorEarning,
+              'wallet.balance': vendorEarning
+            }
+          });
+        }
 
         // 3. Transactions
         await Transaction.create({
@@ -598,7 +686,8 @@ exports.verifyOnlinePayment = async (req, res) => {
 
         if (vendorEarning > 0) {
           await Transaction.create({
-            vendorId: booking.vendorId,
+            vendorId: booking.vendorId || undefined,
+            workerId: !booking.vendorId ? booking.workerId : undefined,
             bookingId: booking._id,
             amount: vendorEarning,
             type: 'earnings_credit',
@@ -635,6 +724,33 @@ exports.verifyOnlinePayment = async (req, res) => {
             status: 'completed'
           });
         }
+
+        // Push Notifications
+        const { createNotification } = require('../notificationControllers/notificationController');
+        // Notify User
+        await createNotification({
+          userId: booking.userId,
+          type: 'payment_received',
+          title: 'Payment Successful!',
+          message: `Payment of ₹${booking.finalAmount} received via Online QR. Job Completed. Thank you!`,
+          relatedId: booking._id,
+          relatedType: 'booking',
+          priority: 'high',
+          pushData: { type: 'payment_success', bookingId: booking._id.toString() }
+        });
+
+        // Notify Worker/Vendor
+        await createNotification({
+          vendorId: booking.vendorId || undefined,
+          workerId: !booking.vendorId ? booking.workerId : undefined,
+          type: 'earnings_credited',
+          title: 'Payment Received!',
+          message: `You have received ₹${vendorEarning} for booking #${booking.bookingNumber}.`,
+          relatedId: booking._id,
+          relatedType: 'booking',
+          priority: 'high',
+          pushData: { type: 'payment_received', bookingId: booking._id.toString() }
+        });
 
         return res.status(200).json({
           success: true,
@@ -703,7 +819,7 @@ exports.confirmManualOnlinePayment = async (req, res) => {
     let vendorEarning = 0;
     if (bill) {
       vendorEarning = bill.vendorTotalEarning;
-      
+
       // Sync booking fields from bill to ensure data consistency
       booking.basePrice = bill.originalServiceBase;
       booking.tax = bill.originalGST + bill.vendorServiceGST + bill.partsGST;
@@ -718,10 +834,22 @@ exports.confirmManualOnlinePayment = async (req, res) => {
       vendorEarning = booking.finalAmount * 0.8;
     }
 
+    // 2. Handle Earnings & Wallet (Vendor or Worker)
     const vendorId = booking.vendorId;
-    await Vendor.findByIdAndUpdate(vendorId, {
-      $inc: { 'wallet.earnings': vendorEarning }
-    });
+    const workerId = booking.workerId;
+
+    if (vendorId) {
+      await Vendor.findByIdAndUpdate(vendorId, {
+        $inc: { 'wallet.earnings': vendorEarning }
+      });
+    } else if (workerId) {
+      await Worker.findByIdAndUpdate(workerId, {
+        $inc: {
+          'wallet.earnings': vendorEarning,
+          'wallet.balance': vendorEarning
+        }
+      });
+    }
 
     // 3. Transactions
     await Transaction.create({
@@ -759,7 +887,7 @@ exports.confirmManualOnlinePayment = async (req, res) => {
       totalTDS: 0
     }).catch(err => console.error('[ConfirmManual] Daily tracker failed:', err));
 
-    // 5. Notify & Socket
+    // Emit socket event
     const io = req.app.get('io');
     if (io) {
       io.to(`user_${booking.userId}`).emit('booking_updated', {
@@ -773,6 +901,31 @@ exports.confirmManualOnlinePayment = async (req, res) => {
         paymentMethod: 'online'
       });
     }
+
+    // Push Notifications
+    const { createNotification } = require('../notificationControllers/notificationController');
+    // Notify User
+    await createNotification({
+      userId: booking.userId,
+      type: 'payment_received',
+      title: 'Payment Confirmed!',
+      message: `Manual online payment of ₹${booking.finalAmount} confirmed. Job Completed.`,
+      relatedId: booking._id,
+      relatedType: 'booking',
+      priority: 'high'
+    });
+
+    // Notify Worker/Vendor
+    await createNotification({
+      vendorId: booking.vendorId || undefined,
+      workerId: !booking.vendorId ? booking.workerId : undefined,
+      type: 'earnings_credited',
+      title: 'Payment Confirmed!',
+      message: `Manual online payment for booking #${booking.bookingNumber} has been recorded.`,
+      relatedId: booking._id,
+      relatedType: 'booking',
+      priority: 'high'
+    });
 
     return res.status(200).json({
       success: true,

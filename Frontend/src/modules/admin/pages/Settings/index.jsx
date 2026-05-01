@@ -817,10 +817,10 @@ const AdminSettings = () => {
                       <p className="text-xs text-gray-500 mt-1">Enable digital payment methods for users</p>
                     </div>
                     <button onClick={() => {
-                        const newValue = !financialSettings.isOnlinePaymentEnabled;
-                        setFinancialSettings(prev => ({ ...prev, isOnlinePaymentEnabled: newValue }));
-                        updateSettings({ isOnlinePaymentEnabled: newValue });
-                      }}
+                      const newValue = !financialSettings.isOnlinePaymentEnabled;
+                      setFinancialSettings(prev => ({ ...prev, isOnlinePaymentEnabled: newValue }));
+                      updateSettings({ isOnlinePaymentEnabled: newValue });
+                    }}
                       className={`relative w-12 h-7 rounded-full transition-all duration-300 ${financialSettings.isOnlinePaymentEnabled ? 'bg-green-600' : 'bg-gray-200'}`}>
                       <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${financialSettings.isOnlinePaymentEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                     </button>

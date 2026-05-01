@@ -73,7 +73,7 @@ const JobTimeline = () => {
         break;
       case 'completed':
         if (isSettled) setCurrentStage(11);
-        else if (isPaid) setCurrentStage(9);
+        else if (isPaid || (jobData?.bookingModel === 'worker' && jobData?.cashCollected)) setCurrentStage(9);
         else setCurrentStage(8);
         break;
       default: setCurrentStage(1);
@@ -98,7 +98,8 @@ const JobTimeline = () => {
   };
 
   const handleRequestPayment = () => {
-    toast.success('Payment request sent to Vendor', {
+    const target = job?.bookingModel === 'worker' ? 'Admin' : 'Vendor';
+    toast.success(`Payment request sent to ${target}`, {
       icon: '🔔',
       style: { borderRadius: '10px', background: '#333', color: '#fff' },
     });
@@ -267,10 +268,10 @@ const JobTimeline = () => {
     },
     {
       id: 6,
-      title: 'Vendor Approval',
+      title: job?.bookingModel === 'worker' ? 'Admin Approval' : 'Vendor Approval',
       icon: FiUser,
       action: null,
-      description: 'Waiting for vendor to review and approve work.',
+      description: job?.bookingModel === 'worker' ? 'Waiting for admin to review and approve work.' : 'Waiting for vendor to review and approve work.',
       timestamp: null
     },
     {
@@ -286,8 +287,12 @@ const JobTimeline = () => {
       title: 'Worker Payment',
       icon: FiDollarSign,
       action: (currentStage === 8 && !(job?.isWorkerPaid || job?.workerPaymentStatus === 'PAID' || job?.workerPaymentStatus === 'SUCCESS')) ? handleRequestPayment : null,
-      actionLabel: 'Ask Vendor for Payment',
-      description: (job?.isWorkerPaid || job?.workerPaymentStatus === 'PAID' || job?.workerPaymentStatus === 'SUCCESS') ? 'Payment received successfully.' : 'Waiting for vendor to release payment.',
+      actionLabel: job?.bookingModel === 'worker' ? 'Ask Admin for Payment' : 'Ask Vendor for Payment',
+      description: (job?.isWorkerPaid || job?.workerPaymentStatus === 'PAID' || job?.workerPaymentStatus === 'SUCCESS') 
+        ? 'Payment received successfully.' 
+        : (job?.cashCollected && job?.bookingModel === 'worker')
+          ? 'Cash received by you. No payout needed from Admin.'
+          : (job?.bookingModel === 'worker' ? 'Waiting for admin to release payment.' : 'Waiting for vendor to release payment.'),
     },
     {
       id: 9,
@@ -295,7 +300,7 @@ const JobTimeline = () => {
       icon: FiCheckCircle,
       action: currentStage === 9 ? handleConfirmSettlement : null,
       actionLabel: 'Confirm Settlement',
-      description: job?.finalSettlementStatus === 'DONE' ? 'Final settlement done.' : 'Waiting for vendor confirmation.',
+      description: job?.finalSettlementStatus === 'DONE' ? 'Final settlement done.' : (job?.bookingModel === 'worker' ? 'Waiting for admin confirmation.' : 'Waiting for vendor confirmation.'),
     },
     {
       id: 10,

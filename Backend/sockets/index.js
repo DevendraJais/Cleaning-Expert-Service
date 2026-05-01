@@ -259,11 +259,12 @@ const updateWorkerOnlineStatus = async (workerId, isOnline, socketId) => {
 
     const updateData = {
       status: isOnline ? 'ONLINE' : 'OFFLINE',
+      isOnline: isOnline,
       // currentSocketId: socketId // Add to model if needed
     };
 
     if (!isOnline) {
-      updateData.lastSeenAt = new Date(); // Add to model if needed
+      updateData.lastSeenAt = new Date();
     }
 
     // Update MongoDB

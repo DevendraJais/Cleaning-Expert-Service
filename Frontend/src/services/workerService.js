@@ -129,6 +129,16 @@ const workerService = {
   deleteAllNotifications: async () => {
     const response = await api.delete('/notifications/delete-all');
     return response.data;
+  },
+
+  getSubscriptionStatus: async () => {
+    const response = await api.get('/workers/subscription/status');
+    return response.data;
+  },
+
+  testPushNotification: async () => {
+    const response = await api.post('/workers/fcm-tokens/test');
+    return response.data;
   }
 };
 

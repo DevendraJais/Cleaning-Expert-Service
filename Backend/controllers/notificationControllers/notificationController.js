@@ -92,19 +92,13 @@ const createNotification = async ({
       console.log('Socket check failed:', e.message);
     }
 
-    // DECISION: If User is Online (Socket Connected) -> Send Socket Event ONLY (Skip Push)
-    // If User is Offline -> Send Push Notification
+    // DECISION: We will now ALWAYS send Push Notifications for better reliability,
+    // even if the user is online via Socket.io. 
+    // The Service Worker (v1.0.3) already handles deduplication.
 
-    // Override skipPush if user is online (to avoid double notification)
-    if (isOnline) {
+    if (isOnline && io && room) {
       console.log(`[Notification] User ${room} is ONLINE. Sending Socket event.`);
-      // Prevent duplicate notification on active device
-      // skipPush = true; // REVERTED: Causes missing notifications if mobile app is background
-
-      // Emit Socket Event immediately
-      if (io && room) {
-        io.to(room).emit('notification', notification);
-      }
+      io.to(room).emit('notification', notification);
     } else {
       console.log(`[Notification] User ${room} is OFFLINE. Sending Push Notification.`);
       // Socket emit useless here, but safe to ignore

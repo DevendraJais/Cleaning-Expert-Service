@@ -19,12 +19,7 @@ const navItemColors = {
     bg: 'rgba(16, 185, 129, 0.1)',
     shadow: 'rgba(16, 185, 129, 0.4)'
   },
-  scrap: {
-    primary: '#F59E0B', // Amber
-    gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-    bg: 'rgba(245, 158, 11, 0.1)',
-    shadow: 'rgba(245, 158, 11, 0.4)'
-  },
+
   cart: {
     primary: '#EC4899', // Pink
     gradient: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)',
@@ -49,7 +44,7 @@ const BottomNav = React.memo(() => {
   const navItems = useMemo(() => [
     { id: 'home', label: 'Home', icon: FiHome, filledIcon: HiHome, path: '/user' },
     { id: 'bookings', label: 'Bookings', icon: FiCalendar, filledIcon: HiCalendar, path: '/user/my-bookings' },
-    { id: 'scrap', label: 'Scrap', icon: FiTrash2, filledIcon: HiTrash, path: '/user/scrap' },
+
     { id: 'cart', label: 'Cart', icon: FiShoppingCart, filledIcon: HiShoppingCart, path: '/user/cart', isCart: true },
     { id: 'account', label: 'Account', icon: FiUser, filledIcon: HiUser, path: '/user/account' },
   ], []);
@@ -57,7 +52,7 @@ const BottomNav = React.memo(() => {
   const getActiveTab = () => {
     if (location.pathname === '/user' || location.pathname === '/user/') return 'home';
     if (location.pathname === '/user/my-bookings') return 'bookings';
-    if (location.pathname === '/user/scrap') return 'scrap';
+
     if (location.pathname === '/user/cart') return 'cart';
     if (location.pathname === '/user/account') return 'account';
     return 'home';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiUser, FiEdit2, FiMapPin, FiPhone, FiMail, FiBriefcase, FiStar, FiChevronRight, FiTag, FiLogOut } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
-import { workerTheme as themeColors, vendorTheme } from '../../../../theme';
+import { workerTheme as themeColors } from '../../../../theme';
 import { workerAuthService } from '../../../../services/authService';
 import Header from '../../components/layout/Header';
 import BottomNav from '../../components/layout/BottomNav';
@@ -157,15 +157,15 @@ const Profile = () => {
         <div
           className="rounded-2xl p-5 mb-4 shadow-xl relative overflow-hidden"
           style={{
-            background: vendorTheme.button,
-            border: `2px solid ${vendorTheme.button}`,
+            background: themeColors.button,
+            border: `2px solid ${themeColors.button}`,
           }}
         >
           {/* Decorative Pattern */}
           <div
             className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10"
             style={{
-              background: `radial-gradient(circle, ${vendorTheme.button} 0%, transparent 70%)`,
+              background: `radial-gradient(circle, ${themeColors.button} 0%, transparent 70%)`,
               transform: 'translate(30px, -30px)',
             }}
           />

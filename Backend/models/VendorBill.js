@@ -23,7 +23,13 @@ const vendorBillSchema = new mongoose.Schema({
   vendorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vendor',
-    required: true,
+    required: false,
+    index: true
+  },
+  workerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Worker',
+    required: false,
     index: true
   },
 

@@ -19,7 +19,7 @@ try {
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   } else {
     // Local: Use file path
-    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './config/firebase-service-account.json';
+    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './config/truliq-firebase-adminsdk-fbsvc-ce65e5c441.json';
     serviceAccount = require(path.resolve(__dirname, '..', serviceAccountPath));
   }
 } catch (error) {
@@ -29,136 +29,151 @@ try {
 // Initialize only if not already initialized
 if (!admin.apps.length && serviceAccount) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://truliq-default-rtdb.asia-southeast1.firebasedatabase.app/"
   });
   console.log('✅ Firebase Admin SDK initialized');
 }
 
+const NotificationLog = require('../models/NotificationLog');
+
 /**
  * Send push notification to multiple tokens
- * @param {string[]} tokens - Array of FCM tokens
+ * @param {string[]|Object} recipientOrTokens - Array of FCM tokens or a Mongoose Document (User/Worker/Vendor)
  * @param {Object} payload - Notification payload
  * @param {string} payload.title - Notification title
  * @param {string} payload.body - Notification body
  * @param {Object} payload.data - Additional data (optional)
- * @param {string} payload.icon - Notification icon (optional)
- * @param {boolean} payload.highPriority - Send as high priority (default: true)
+ * @param {string} payload.notificationId - Custom unique ID for deduplication (optional)
  * @returns {Promise<Object>} - Response with success/failure counts
  */
-/**
- * Send push notification to multiple tokens
- * @param {string[]} tokens - Array of FCM tokens
- * @param {Object} payload - Notification payload
- * @param {string} payload.title - Notification title
- * @param {string} payload.body - Notification body
- * @param {Object} payload.data - Additional data (optional)
- * @param {string} payload.icon - Notification icon (optional)
- * @param {boolean} payload.highPriority - Send as high priority (default: true)
- * @returns {Promise<Object>} - Response with success/failure counts
- */
-async function sendPushNotification(tokens, payload) {
+async function sendPushNotification(recipientOrTokens, payload) {
   try {
+    // 1. Generate/Extract unique notification ID (SOP Step 4)
+    const userId = (recipientOrTokens && recipientOrTokens._id) ? String(recipientOrTokens._id) : 'anonymous';
+    const type = payload.data?.type || 'generic';
+    const relatedId = payload.data?.bookingId || payload.data?.id || Date.now();
+    
+    // If notificationId is provided in payload, use it, otherwise generate one
+    const notificationId = payload.notificationId || `${userId}_${type}_${relatedId}`;
+
+    // 2. Check NotificationLog (SOP Section 6, Step 4)
+    // Allow repeated tests to bypass dedupe
+    if (notificationId !== 'test-notification') {
+      const alreadySent = await NotificationLog.findOne({ notificationId });
+      if (alreadySent) {
+        console.log(`[FCM] 🚫 Duplicate notification prevented: ${notificationId}`);
+        return { successCount: 0, failureCount: 0, duplicate: true };
+      }
+    }
+
+    // 3. Extract tokens
+    let tokens = [];
+    let recipient = recipientOrTokens;
+
+    // If ID string is passed, try to fetch the user/worker/vendor
+    if (typeof recipientOrTokens === 'string') {
+      const Worker = require('../models/Worker');
+      const User = require('../models/User');
+      const Vendor = require('../models/Vendor');
+
+      // Try fetching from all 3 collections
+      const [worker, user, vendor] = await Promise.all([
+        Worker.findById(recipientOrTokens),
+        User.findById(recipientOrTokens),
+        Vendor.findById(recipientOrTokens)
+      ]);
+      recipient = worker || user || vendor;
+    }
+
+    if (Array.isArray(recipient)) {
+      tokens = recipient;
+    } else if (recipient && typeof recipient === 'object') {
+      const modelTokens = recipient.fcmTokens || [];
+      const mobileTokens = recipient.fcmTokenMobile || [];
+      const singleToken = recipient.fcmToken;
+      
+      tokens = [...modelTokens, ...mobileTokens];
+      if (singleToken) tokens.push(singleToken);
+    }
+
     if (!tokens || tokens.length === 0) {
-      console.log('No FCM tokens provided');
+      console.log('[FCM] No tokens found for recipient');
       return { successCount: 0, failureCount: 0 };
     }
 
     // Remove duplicates and empty values (Robust deduplication)
     const uniqueTokens = Array.from(new Set(tokens.filter(t => t && typeof t === 'string' && t.trim().length > 0)));
 
+
     if (uniqueTokens.length === 0) {
       console.log('No valid FCM tokens after filtering');
       return { successCount: 0, failureCount: 0 };
     }
 
-    // Ensure data values are strings (FCM requirement)
+    // ✅ Build complete data payload (all as strings - FCM requirement)
     const stringData = {
-      // Always include title and body in data for data-only notifications and Service Worker access
-      title: payload.title || (payload.body ? 'New Update' : 'App Notification'),
-      body: payload.body || ''
+      title: payload.title || 'App Notification',
+      body: payload.body || 'New Update',
+      notificationId: String(notificationId),
     };
     if (payload.data) {
       Object.keys(payload.data).forEach(key => {
         stringData[key] = String(payload.data[key]);
       });
     }
+    // Always ensure these are set correctly
+    stringData.title = payload.title || 'App Notification';
+    stringData.body = payload.body || 'New Update';
+    stringData.notificationId = String(notificationId);
+    if (payload.icon) stringData.icon = payload.icon;
 
     const message = {
+      // ✅ notification field: required for background/closed-tab system notifications
+      // Chrome/browser auto-shows this when app is in background
+      notification: {
+        title: payload.title || 'App Notification',
+        body: payload.body || 'New Update',
+      },
+      // ✅ data field: gives extra info to foreground handler & SW
       data: stringData,
       tokens: uniqueTokens,
-      // Android specific configuration for high priority
+
+      // Android: high priority + notification styling
       android: {
-        priority: 'high', // HIGH priority for immediate delivery
-        // notification block removed to ensure Data-Only message
+        priority: 'high',
+        notification: {
+          title: payload.title || 'App Notification',
+          body: payload.body || 'New Update',
+          icon: 'ic_notification',
+          color: '#FF6B00',
+          sound: 'default',
+        }
       },
-      // iOS/APNs specific configuration
+
+      // iOS/APNs
       apns: {
-        headers: {
-          'apns-priority': '10', // Highest priority for immediate delivery
-          'apns-push-type': 'alert'
-        },
+        headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
         payload: {
           aps: {
             sound: 'default',
             badge: 1,
-            'content-available': 1, // Wake up app in background
-            'mutable-content': 1
+            'content-available': 1,
+            'mutable-content': 1,
+            alert: {
+              title: payload.title || 'App Notification',
+              body: payload.body || 'New Update',
+            }
           }
         }
       },
-      // Web push configuration
+
+      // WebPush: high urgency (foreground onMessage will handle the toast)
       webpush: {
-        headers: {
-          Urgency: 'high',
-          TTL: '86400' // 24 hours
-        },
-        fcmOptions: {
-          link: payload.data?.link || '/'
-        }
+        headers: { Urgency: 'high', TTL: '86400' },
+        fcmOptions: { link: payload.data?.link || '/' }
       },
-      priority: payload.highPriority !== false ? 'high' : 'normal'
     };
-
-    // Standard notification block (Top-level)
-    message.notification = {
-      title: payload.title || 'App Notification',
-      body: payload.body || 'New Update',
-    };
-    
-    // Android specific (Sound, Priority, Channel, Icon)
-    message.android.notification = {
-      title: message.notification.title,
-      body: message.notification.body,
-      icon: 'stock_ticker_update',
-      color: '#f44336'
-    };
-
-    // iOS/APNs specific (Sound, Alert, Badge)
-    message.apns.payload.aps.alert = {
-      title: message.notification.title,
-      body: message.notification.body,
-    };
-
-    // WebPush specific (Title, Body, Icon, Badge)
-    message.webpush.notification = {
-      title: message.notification.title,
-      body: message.notification.body,
-      icon: payload.icon || '/Homster-logo.png',
-      badge: '/Homster-logo.png',
-    };
-
-    /*
-    if (payload.icon) {
-      message.notification.image = payload.icon;
-      message.android.notification.image = payload.icon;
-    }
-    */
-
-    // Ensure critical fields are also in data for background handling
-    // Use payload source directly since message.notification is disabled
-    message.data.title = payload.title || 'App Notification';
-    message.data.body = payload.body || 'New Update';
-    if (payload.icon) message.data.icon = payload.icon;
 
     // Log intent
     console.log(`[FCM] Sending standard notification to ${uniqueTokens.length} tokens:`, payload.title);
@@ -166,6 +181,20 @@ async function sendPushNotification(tokens, payload) {
     const response = await admin.messaging().sendEachForMulticast(message);
 
     console.log(`✅ Push notification sent - Success: ${response.successCount}, Failed: ${response.failureCount}`);
+
+    // 4. Save log (LOCK) - SOP Section 6, Step 4
+    if (response.successCount > 0) {
+      try {
+        await NotificationLog.create({ 
+          notificationId, 
+          userId, 
+          tokens: uniqueTokens 
+        });
+      } catch (logErr) {
+        // Ignore duplicate key error if another process just saved it
+        if (logErr.code !== 11000) console.error('[FCM Log Error]:', logErr);
+      }
+    }
 
     // Log failed tokens for debugging and cleanup invalid ones
     if (response.failureCount > 0) {

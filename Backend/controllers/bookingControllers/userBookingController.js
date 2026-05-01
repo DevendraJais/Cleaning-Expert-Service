@@ -134,12 +134,11 @@ const createBooking = async (req, res) => {
 
     let nearbyPartners = [];
     if (bookingModel === 'worker') {
-      console.log('[CreateBooking] Direct Worker Mode Active. Searching Workers...');
-      const workerFilters = {
-        service: category?.title || service.category,
-        city: address.city
-      };
-      nearbyPartners = await findNearbyWorkers(bookingLocation, searchRadius, workerFilters);
+      nearbyPartners = await findNearbyWorkers(
+        bookingLocation,
+        searchRadius,
+        { service: category?.title || (service ? service.category : 'General') }
+      );
     } else {
       console.log('[CreateBooking] Legacy Vendor Mode Active. Searching Vendors...');
       const vendorFilters = {
@@ -240,18 +239,18 @@ const createBooking = async (req, res) => {
           finalAmount = (basePrice - discount + tax + visitingCharges) + pendingPenalty;
         } else {
           // Backward compatibility: Reverse calculate
-          if (!visitingCharges) visitingCharges = 49;
-          basePrice = Math.round((amount - visitingCharges) / 1.18);
-          tax = amount - basePrice - visitingCharges;
+          if (!visitingCharges) visitingCharges = 0;
+          basePrice = amount;
+          tax = 0;
           discount = 0;
           finalAmount = amount + pendingPenalty;
         }
       } else {
         // Fallback to service pricing (if no amount sent)
-        if (!visitingCharges) visitingCharges = 49;
+        if (!visitingCharges) visitingCharges = 0;
         basePrice = service.basePrice || 500;
         discount = service.discountPrice ? (basePrice - service.discountPrice) : 0;
-        tax = Math.round(basePrice * 0.18);
+        tax = 0;
         finalAmount = (basePrice - discount + tax + visitingCharges) + pendingPenalty;
       }
     }
@@ -434,7 +433,7 @@ const createBooking = async (req, res) => {
             distance: v.distance || 0
           }));
         }
-        
+
         bookingForBackground.currentWave = 1;
         bookingForBackground.waveStartedAt = new Date();
         bookingForBackground.notifiedPartners = wave1Partners.map(v => v._id);
@@ -459,11 +458,57 @@ const createBooking = async (req, res) => {
           try {
             await BookingRequest.insertMany(bookingRequests, { ordered: false });
             console.log(`[CreateBooking] Created ${bookingRequests.length} BookingRequest entries for ${bookingModel}s`);
+
+            // Notify partners about new job
+            const { createNotification } = require('../notificationControllers/notificationController');
+            for (const partner of wave1Partners) {
+              await createNotification({
+                vendorId: bookingModel === 'vendor' ? partner._id : null,
+                workerId: bookingModel === 'worker' ? partner._id : null,
+                type: 'new_job_available',
+                title: 'New Job Available!',
+                message: `A new ${bookingForBackground.serviceName} job is available near you. Earn ₹${bookingForBackground.finalAmount}!`,
+                relatedId: bookingForBackground._id,
+                relatedType: 'booking',
+                priority: 'high',
+                pushData: {
+                  type: 'new_job',
+                  bookingId: bookingForBackground._id.toString(),
+                  link: bookingModel === 'vendor' ? `/vendor/bookings/${bookingForBackground._id}` : `/worker/job/${bookingForBackground._id}`
+                }
+              });
+            }
+
+            // Also notify User that we are finding professionals
+            await createNotification({
+              userId: bookingForBackground.userId._id,
+              type: 'finding_professional',
+              title: 'Booking Received!',
+              message: `We have received your booking for ${bookingForBackground.serviceName}. Finding the best professional for you...`,
+              relatedId: bookingForBackground._id,
+              relatedType: 'booking',
+              pushData: {
+                type: 'booking_confirmed',
+                bookingId: bookingForBackground._id.toString(),
+                link: `/user/booking/${bookingForBackground._id}`
+              }
+            });
           } catch (err) {
             if (err.code !== 11000) console.error('[CreateBooking] BookingRequest insert error:', err);
           }
         } else {
           console.warn(`[CreateBooking] NO ${bookingModel.toUpperCase()}S FOUND nearby!`);
+
+          // Emit socket emission for search failure
+          const { getIO } = require('../../sockets');
+          const io = getIO();
+          if (io) {
+            io.to(`user_${userId}`).emit('booking_search_failed', {
+              bookingId: bookingForBackground._id,
+              message: `No ${bookingModel}s found nearby.`
+            });
+          }
+
           bookingForBackground.status = BOOKING_STATUS.NO_VENDORS;
           await bookingForBackground.save();
         }
@@ -471,9 +516,11 @@ const createBooking = async (req, res) => {
         // Send notifications to Wave 1 partners
         const { getIO } = require('../../sockets');
         const io = getIO();
+        const { sendNotificationToWorker } = require('../../services/firebaseAdmin');
+
         if (io) {
           console.log(`[CreateBooking] Emitting Socket.IO events to ${wave1Partners.length} ${bookingModel}s in Wave 1...`);
-          wave1Partners.forEach(partner => {
+          wave1Partners.forEach(async (partner) => {
             const partnerRoom = `${bookingModel}_${partner._id.toString()}`;
             io.to(partnerRoom).emit('new_booking_request', {
               bookingId: bookingForBackground._id,

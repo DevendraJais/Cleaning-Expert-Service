@@ -12,6 +12,7 @@ import { LocationPermissionChecker } from './components/common';
 function App() {
   // Initialize push notifications on app load
   useEffect(() => {
+    console.log('[App] 🚀 Initializing Notification System...');
     initializePushNotifications();
 
     // Setup foreground notification handler

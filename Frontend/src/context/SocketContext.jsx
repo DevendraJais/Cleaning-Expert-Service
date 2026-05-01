@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { playNotificationSound, isSoundEnabled, playAlertRing } from '../utils/notificationSound';
-import { registerFCMToken } from '../services/pushNotificationService';
+import { registerFCMToken, setupForegroundNotificationHandler } from '../services/pushNotificationService';
 
 const SwipeableNotification = ({ t, data, onClick }) => {
   const x = useMotionValue(0);
@@ -153,11 +153,18 @@ export const SocketProvider = ({ children }) => {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      // console.log(`✅ ${userType.toUpperCase()} App Socket connected`);
-
+      // console.log(`✅ ${userType?.toUpperCase()} App Socket connected`);
+      // console.log(`[DEBUG] userType: ${userType}, hasToken: ${!!token}`);
+      
       // Register FCM token for push notifications (on page load/refresh)
       if (userType && token) {
+        // Setup foreground notification listener
+        setupForegroundNotificationHandler((payload) => {
+          // Play sound and show notification (handled internally by the service)
+        });
+
         // console.log(`[SocketContext] Registering FCM token for ${userType}...`);
+
         registerFCMToken(userType, true).then((fcmToken) => {
           if (fcmToken) {
             // console.log(`[SocketContext] ✅ FCM token registered for ${userType}`);
@@ -169,6 +176,7 @@ export const SocketProvider = ({ children }) => {
         });
       }
 
+
       // If vendor, join vendor-specific room just in case backend expects it
       if (userType === 'vendor') {
         const vendorData = JSON.parse(localStorage.getItem('vendorData') || '{}');
@@ -177,21 +185,22 @@ export const SocketProvider = ({ children }) => {
           newSocket.emit('join_vendor_room', vendorId);
         }
       }
+
+      if (userType === 'worker') {
+        const workerData = JSON.parse(localStorage.getItem('workerData') || '{}');
+        const workerId = workerData.id || workerData._id;
+        if (workerId) {
+          newSocket.emit('join_worker_room', workerId);
+        }
+      }
     });
 
     newSocket.on('disconnect', () => {
       // console.log(`❌ ${userType.toUpperCase()} App Socket disconnected`);
     });
 
-    newSocket.on('connect_error', (err) => {
-      // Silently handle typical connection errors to avoid spam, or log only critical ones
-      // console.error(`Socket connection error (${userType}):`, err);
-    });
-
     // Listen for generic notifications
     newSocket.on('notification', (data) => {
-      // console.log('🔔 App Notification received:', data);
-
       if (isSoundEnabled(userType)) {
         playNotificationSound();
       }
@@ -385,6 +394,58 @@ export const SocketProvider = ({ children }) => {
 
         // Always show the global alert 
         const event = new CustomEvent('showWorkerJobAlert', { detail: newJob });
+        window.dispatchEvent(event);
+      });
+
+      // Listen for direct booking requests (Worker Mode)
+      newSocket.on('new_booking_request', (data) => {
+        // Play urgent alert ring
+        playAlertRing();
+
+        const newJob = {
+          id: data.bookingId,
+          _id: data.bookingId,
+          serviceType: data.serviceName || 'Service',
+          customerName: data.customerName,
+          customerPhone: data.customerPhone,
+          location: {
+            address: data.address?.addressLine1 || 'Location shared',
+            distance: data.distance ? `${data.distance.toFixed(1)} km` : 'Near you'
+          },
+          price: data.price,
+          serviceCategory: data.serviceCategory,
+          brandName: data.brandName,
+          brandIcon: data.brandIcon,
+          categoryIcon: data.categoryIcon,
+          scheduledDate: data.scheduledDate,
+          scheduledTime: data.scheduledTime,
+          timeSlot: {
+            date: new Date(data.scheduledDate).toLocaleDateString(),
+            time: data.scheduledTime
+          },
+          status: 'requested',
+          createdAt: data.createdAt || new Date().toISOString(),
+          expiresAt: data.expiresAt
+        };
+
+        // Save to localStorage for persistence
+        const pendingJobs = JSON.parse(localStorage.getItem('workerPendingJobs') || '[]');
+        if (!pendingJobs.find(job => String(job.id || job._id) === String(newJob.id))) {
+          pendingJobs.unshift(newJob);
+          localStorage.setItem('workerPendingJobs', JSON.stringify(pendingJobs));
+        }
+
+        // Notify app components to refresh
+        window.dispatchEvent(new Event('workerJobsUpdated'));
+
+        // Show the alert modal
+        const event = new CustomEvent('showWorkerJobAlert', { 
+          detail: {
+            ...newJob,
+            service: newJob.serviceType, // Alias for older components
+            amount: newJob.price
+          } 
+        });
         window.dispatchEvent(event);
       });
     }

@@ -167,7 +167,7 @@ const Subscription = () => {
             <div className="flex items-center gap-2 text-white/80 text-sm">
               <FiClock className="w-4 h-4" />
               <span>
-                {daysRemaining(status.expiryDate)} days left · Expires {formatDate(status.expiryDate)}
+                {daysRemaining(status.expiryDate)} days left · Expires {new Date(status.expiryDate).toLocaleString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
               </span>
             </div>
 

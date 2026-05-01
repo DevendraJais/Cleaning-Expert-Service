@@ -31,8 +31,8 @@ const createOrUpdateBill = async (req, res) => {
     const { USER_ROLES } = require('../../utils/constants');
 
     // Auth check: Vendor or assigned Worker
-    const isVendorAuth = booking.vendorId.toString() === req.user.id && req.userRole === USER_ROLES.VENDOR;
-    const isWorkerAuth = booking.workerId?.toString() === req.user.id && req.userRole === USER_ROLES.WORKER;
+    const isVendorAuth = booking.vendorId && booking.vendorId.toString() === req.user.id && req.userRole === USER_ROLES.VENDOR;
+    const isWorkerAuth = booking.workerId && booking.workerId.toString() === req.user.id && req.userRole === USER_ROLES.WORKER;
 
     if (!isVendorAuth && !isWorkerAuth) {
       return res.status(403).json({ success: false, message: 'Not authorized for this booking' });
@@ -43,14 +43,14 @@ const createOrUpdateBill = async (req, res) => {
 
     // ── Fetch Settings (frozen snapshot) ──
     const settings = await Settings.findOne({ type: 'global' });
-    
+
     // Check if it's a Direct Worker flow to apply 100% payout
     const isDirectWorkerFlow = booking.bookingModel === 'worker';
-    
+
     const serviceSplitPct = isDirectWorkerFlow ? 100 : (settings?.servicePayoutPercentage ?? 70);
     const partsSplitPct = isDirectWorkerFlow ? 100 : (settings?.partsPayoutPercentage ?? 10);
-    const serviceGstPct = settings?.serviceGstPercentage ?? 18;
-    const partsGstPct = settings?.partsGstPercentage ?? 18;
+    const serviceGstPct = 0;
+    const partsGstPct = 0;
 
     // ═══════════════════════════════════════
     // 1. ORIGINAL SERVICE (from booking)
@@ -59,7 +59,7 @@ const createOrUpdateBill = async (req, res) => {
     const originalServiceBaseForBill = isPlanBooking ? 0 : (booking.basePrice || 0);
     const originalServiceBaseForEarnings = booking.basePrice || 0;
     const originalGST = isPlanBooking ? 0 : parseFloat(((originalServiceBaseForBill * serviceGstPct) / 100).toFixed(2));
-    const visitingCharges = Number(booking.visitingCharges) || 0;
+    const visitingCharges = 0;
 
     // ═══════════════════════════════════════
     // 2. VENDOR-ADDED SERVICES
@@ -216,6 +216,7 @@ const createOrUpdateBill = async (req, res) => {
 
     const billData = {
       vendorId: billVendorId,
+      workerId: booking.workerId,
       services: allServices,
       parts: processedParts,
       customItems: processedCustomItems,
@@ -277,8 +278,12 @@ const createOrUpdateBill = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Create bill error:', error);
-    res.status(500).json({ success: false, message: 'Failed to generate bill' });
+    console.error('Create/Update Bill error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      error: error.name
+    });
   }
 };
 
@@ -296,8 +301,8 @@ const getBillByBookingId = async (req, res) => {
 
     const { USER_ROLES } = require('../../utils/constants');
 
-    const isVendorAuth = booking.vendorId.toString() === req.user.id && req.userRole === USER_ROLES.VENDOR;
-    const isWorkerAuth = booking.workerId?.toString() === req.user.id && req.userRole === USER_ROLES.WORKER;
+    const isVendorAuth = booking.vendorId && booking.vendorId.toString() === req.user.id && req.userRole === USER_ROLES.VENDOR;
+    const isWorkerAuth = booking.workerId && booking.workerId.toString() === req.user.id && req.userRole === USER_ROLES.WORKER;
 
     if (!isVendorAuth && !isWorkerAuth) {
       return res.status(403).json({ success: false, message: 'Not authorized for this booking' });

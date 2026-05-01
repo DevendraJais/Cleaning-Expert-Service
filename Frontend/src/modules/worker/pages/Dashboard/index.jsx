@@ -53,6 +53,7 @@ const Dashboard = () => {
     categories: [],
     address: null,
   });
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [recentJobs, setRecentJobs] = useState([]);
 
   // Set background gradient
@@ -173,9 +174,10 @@ const Dashboard = () => {
       setLoading(true);
 
       // Fetch Profile, Stats and Recent Jobs in parallel (Stats also includes recent jobs but let's be robust)
-      const [profileRes, statsRes] = await Promise.all([
+      const [profileRes, statsRes, subRes] = await Promise.all([
         workerService.getProfile(),
-        workerService.getDashboardStats()
+        workerService.getDashboardStats(),
+        workerService.getSubscriptionStatus()
       ]);
 
       if (profileRes.success) {
@@ -193,18 +195,16 @@ const Dashboard = () => {
 
       if (statsRes.success) {
         const { totalEarnings, activeJobs, completedJobs, rating, recentJobs: apiRecentJobs } = statsRes.data;
-
         setStats(prev => ({
           ...prev,
           totalEarnings: totalEarnings || 0,
-          thisMonthEarnings: totalEarnings || 0, // Assuming total is this month for now or total
-          pendingJobs: activeJobs || 0, // Using active for pending display for now, or map specifically if needed
-          acceptedJobs: activeJobs || 0, // Overlap in meaning, simplify
+          thisMonthEarnings: totalEarnings || 0,
+          pendingJobs: activeJobs || 0,
+          acceptedJobs: activeJobs || 0,
           completedJobs: completedJobs || 0,
           rating: rating || 0
         }));
 
-        // Use recent jobs from stats API
         if (apiRecentJobs && apiRecentJobs.length > 0) {
           setRecentJobs(apiRecentJobs.map(job => ({
             id: job._id,
@@ -216,6 +216,10 @@ const Dashboard = () => {
             price: job.finalAmount,
           })));
         }
+      }
+
+      if (subRes && subRes.success) {
+        setSubscriptionStatus(subRes.data);
       }
 
       setLoading(false);
@@ -259,8 +263,58 @@ const Dashboard = () => {
     };
 
     socket.on('notification', handleNotification);
-    return () => socket.off('notification', handleNotification);
-  }, [socket]);
+
+    // Listen for real-time alert events from SocketContext
+    const handleJobAlert = (e) => {
+      const jobData = e.detail;
+      if (jobData && jobData.id) {
+        setAlertJobId(jobData.id);
+      }
+    };
+
+    window.addEventListener('showWorkerJobAlert', handleJobAlert);
+
+    // Listen for push notifications in foreground
+    const handlePushNotification = (e) => {
+      const payload = e.detail;
+      const data = payload.data || {};
+      
+      // Only open modal for real job assignments with a valid bookingId
+      if (data.type === 'job_assigned' && data.bookingId && data.bookingId !== 'test-id') {
+        setAlertJobId(data.bookingId);
+      }
+      // 'test' type notifications just show the toast - no modal
+    };
+
+    window.addEventListener('appNotificationReceived', handlePushNotification);
+
+    return () => {
+      socket.off('notification', handleNotification);
+      window.removeEventListener('showWorkerJobAlert', handleJobAlert);
+      window.removeEventListener('appNotificationReceived', handlePushNotification);
+    };
+  }, [socket, recentJobs]);
+
+  // Test Push Notification
+  const handleTestPush = async () => {
+    try {
+      const { toast } = await import('react-hot-toast');
+      const loadingToast = toast.loading('Sending test push...');
+      
+      const res = await workerService.testPushNotification();
+      
+      toast.dismiss(loadingToast);
+      if (res.success) {
+        toast.success('Test push sent! Check your notification tray.');
+      } else {
+        toast.error(res.error || 'Failed to send test push');
+      }
+    } catch (err) {
+      console.error('Test push error:', err);
+      const { toast } = await import('react-hot-toast');
+      toast.error('Error triggering test push');
+    }
+  };
 
   if (loading) {
     return (
@@ -358,6 +412,60 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Subscription Status Alert */}
+        {subscriptionStatus && (
+          <div className="px-4 pt-2 -mb-2">
+            {!subscriptionStatus.isActive ? (
+              <div
+                onClick={() => navigate('/worker/subscription')}
+                className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r shadow-sm cursor-pointer hover:bg-red-100 transition-colors"
+              >
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <FiClock className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-bold text-red-700">Plan Expired!</p>
+                    <p className="text-xs text-red-600">
+                      Your subscription ended on {new Date(subscriptionStatus.expiryDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}.
+                    </p>
+                  </div>
+                  <div className="ml-auto">
+                    <FiArrowRight className="h-4 w-4 text-red-500" />
+                  </div>
+                </div>
+              </div>
+            ) : (() => {
+              const diff = new Date(subscriptionStatus.expiryDate) - new Date();
+              const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+              if (days <= 3) {
+                return (
+                  <div
+                    onClick={() => navigate('/worker/subscription')}
+                    className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r shadow-sm cursor-pointer hover:bg-amber-100 transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <FiClock className="h-5 w-5 text-amber-500" />
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-bold text-amber-700">Plan Expiring Soon!</p>
+                        <p className="text-xs text-amber-600">
+                          Expires on {new Date(subscriptionStatus.expiryDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}.
+                        </p>
+                      </div>
+                      <div className="ml-auto">
+                        <FiArrowRight className="h-4 w-4 text-amber-500" />
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
+        )}
+
         {/* Incomplete Profile Prompt */}
         {((!workerProfile.categories || workerProfile.categories.length === 0) ||
           (!workerProfile.address || Object.keys(workerProfile.address).length === 0)) && (
@@ -430,6 +538,49 @@ const Dashboard = () => {
               ) : isOnline ? 'Go Offline' : 'Go Online'}
             </button>
           </div>
+        </div>
+
+        {/* Notification Status & Debug - NEW */}
+        <div className="px-4 py-2">
+          <div className="bg-white/50 backdrop-blur-md rounded-2xl p-3 border border-white/20 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div 
+                className={`w-2 h-2 rounded-full ${Notification.permission === 'granted' ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}
+              />
+              <div>
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Notification Status</p>
+                <p className={`text-xs font-bold ${Notification.permission === 'granted' ? 'text-green-600' : 'text-red-600'}`}>
+                  {Notification.permission === 'granted' ? '✅ Active & Ready' : '❌ Blocked / Not Setup'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+               <button 
+                onClick={() => {
+                  if (window.fcmDebug) window.fcmDebug();
+                  if (window.testLocalFCMUI) window.testLocalFCMUI();
+                }}
+                className="p-2 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold hover:bg-indigo-100 active:scale-95 transition-all"
+               >
+                 TEST UI
+               </button>
+               <button 
+                onClick={async () => {
+                   const { registerFCMToken } = await import('../../../../services/pushNotificationService');
+                   registerFCMToken('worker', true);
+                }}
+                className="p-2 bg-orange-50 text-orange-600 rounded-lg text-[10px] font-bold hover:bg-orange-100 active:scale-95 transition-all"
+               >
+                 RE-REGISTER
+               </button>
+            </div>
+          </div>
+          {Notification.permission !== 'granted' && (
+            <p className="text-[9px] text-red-500 font-bold mt-1 px-1">
+              ⚠️ Notifications are disabled in your browser. Click the lock icon in the URL bar to fix.
+            </p>
+          )}
         </div>
 
         {/* Stats Cards - Outside Gradient */}
@@ -768,13 +919,28 @@ const Dashboard = () => {
               <FiBriefcase className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p className="text-gray-600 font-semibold mb-2">No jobs assigned yet</p>
               <p className="text-sm text-gray-500">
-                You'll see assigned jobs here when vendors assign work to you
+                You'll see assigned jobs here when partners or admin assign work to you
               </p>
             </div>
           )}
         </div>
       </main>
 
+        {/* Test Push Notification Floating Button */}
+        <div className="fixed bottom-24 right-4 z-40">
+          <button
+            onClick={handleTestPush}
+            className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all duration-200"
+            style={{
+              background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 8px 16px rgba(245, 124, 0, 0.4)',
+            }}
+            title="Test Push Notification"
+          >
+            <FiBell className="w-7 h-7 text-white" />
+          </button>
+        </div>
 
       <WorkerJobAlertModal
         isOpen={!!alertJobId}

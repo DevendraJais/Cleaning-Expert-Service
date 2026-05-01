@@ -351,7 +351,8 @@ const BillingPage = () => {
       }
     });
 
-    const visitingCharges = Number(job.visitingCharges) || 0;
+    // Force Visiting Charges to 0
+    const visitingCharges = 0;
     const finalTransportCharges = Number(transportCharges) || 0;
 
     const totalServiceBase = originalBase + extraServiceBase;
@@ -359,7 +360,15 @@ const BillingPage = () => {
     const totalPartsBase = partsBase + customBase;
     const totalPartsGST = partsGST + customGST;
 
-    const finalBillAmount = parseFloat(((totalServiceBase + totalServiceGST) + (totalPartsBase + totalPartsGST) + visitingCharges + finalTransportCharges).toFixed(2));
+    // Total Value of everything
+    const totalValue = parseFloat(((totalServiceBase + totalServiceGST) + (totalPartsBase + totalPartsGST) + visitingCharges + finalTransportCharges).toFixed(2));
+
+    // Calculate Prepaid Amount (if user already paid during booking)
+    const isAlreadyPaid = job.paymentStatus === 'paid' || job.paymentStatus === 'SUCCESS';
+    const prepaidAmount = isAlreadyPaid ? (Number(job.totalAmount) || 0) : 0;
+
+    // Final amount worker needs to collect
+    const finalBillAmount = Math.max(0, parseFloat((totalValue - prepaidAmount).toFixed(2)));
 
     const workerServiceEarnings = parseFloat(((totalServiceBase * servicePayoutPct) / 100).toFixed(2));
     const workerPartsEarnings = parseFloat(((totalPartsBase * partsPayoutPct) / 100).toFixed(2));
@@ -376,6 +385,9 @@ const BillingPage = () => {
       totalGST: parseFloat((totalServiceGST + totalPartsGST).toFixed(2)),
       visitingCharges,
       transportCharges: finalTransportCharges,
+      totalValue,
+      prepaidAmount,
+      isAlreadyPaid,
       finalBillAmount,
       totalWorkerEarnings,
       workerServiceEarnings,
@@ -388,15 +400,16 @@ const BillingPage = () => {
   const handleSendOTP = async () => {
     try {
       setOtpLoading(true);
+      const validCustomItems = customItems.filter(item => item.name.trim() !== '');
       await workerBillService.createOrUpdateBill(id, {
         services: selectedServices,
         parts: selectedParts,
-        customItems,
+        customItems: validCustomItems,
         transportCharges,
         applyPartsGST
       });
 
-      const res = await workerService.initiateCashCollection(id, calculations.finalBillAmount, [...selectedParts, ...customItems]);
+      const res = await workerService.initiateCashCollection(id, calculations.finalBillAmount, [...selectedParts, ...validCustomItems]);
       if (res.success) {
         setIsOtpSent(true);
         setShowOtpModal(true);
@@ -408,7 +421,8 @@ const BillingPage = () => {
       }
     } catch (error) {
       console.error('Send OTP error:', error);
-      toast.error('Failed to send OTP');
+      const errorMsg = error.response?.data?.message || 'Failed to send OTP';
+      toast.error(errorMsg);
     } finally {
       setOtpLoading(false);
     }
@@ -417,7 +431,8 @@ const BillingPage = () => {
   const handleVerifyOTP = async (code) => {
     try {
       setOtpLoading(true);
-      const res = await workerService.collectCash(id, code, calculations.finalBillAmount, [...selectedParts, ...customItems]);
+      const validCustomItems = customItems.filter(item => item.name.trim() !== '');
+      const res = await workerService.collectCash(id, code, calculations.finalBillAmount, [...selectedParts, ...validCustomItems]);
       if (res.success) {
         setShowOtpModal(false);
         toast.success('Payment verified successfully!');
@@ -440,15 +455,16 @@ const BillingPage = () => {
   const handleOnlinePayment = async () => {
     try {
       setQrLoading(true);
+      const validCustomItems = customItems.filter(item => item.name.trim() !== '');
       await workerBillService.createOrUpdateBill(id, {
         services: selectedServices,
         parts: selectedParts,
-        customItems,
+        customItems: validCustomItems,
         transportCharges,
         applyPartsGST
       });
 
-      const res = await workerService.initiateOnlineCollection(id, calculations.finalBillAmount, [...selectedParts, ...customItems]);
+      const res = await workerService.initiateOnlineCollection(id, calculations.finalBillAmount, [...selectedParts, ...validCustomItems]);
       if (res.success) {
         setOnlinePaymentData(res.data);
         setShowQrModal(true);
@@ -860,7 +876,9 @@ const BillingPage = () => {
           <div className="animate-in fade-in slide-in-from-right-4 pb-10">
             <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100 mb-6">
               <div className="bg-gray-900 px-6 py-6 text-white text-center">
-                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest mb-1">TOTAL INVOICE AMOUNT</p>
+                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest mb-1">
+                  {calculations.isAlreadyPaid ? 'BALANCE TO COLLECT' : 'TOTAL INVOICE AMOUNT'}
+                </p>
                 <h2 className="text-4xl font-black">₹{calculations.finalBillAmount.toFixed(2)}</h2>
               </div>
               <div className="p-6 space-y-6">
@@ -875,13 +893,9 @@ const BillingPage = () => {
                       {job.paymentMethod === 'plan_benefit' ? <span className="text-green-600 font-bold">FREE (PLAN)</span> : <span>₹{calculations.originalBase.toFixed(2)}</span>}
                     </div>
                     {selectedServices.map(s => <div key={s.catalogId} className="flex justify-between text-gray-600"><span>{s.name} x {s.quantity}</span><span>₹{(s.price * s.quantity).toFixed(2)}</span></div>)}
-                    <div className="flex justify-between text-xs text-gray-500 border-t border-dashed border-gray-100 pt-1 mt-1">
-                      <span>Service GST ({calculations.serviceGstPct}%)</span>
-                      <span>₹{calculations.totalServiceGST.toFixed(2)}</span>
-                    </div>
                     <div className="flex justify-between font-bold text-gray-800 pt-1">
                       <span>Total Service</span>
-                      <span>₹{(calculations.originalBase + calculations.extraServiceBase + calculations.totalServiceGST).toFixed(2)}</span>
+                      <span>₹{(calculations.originalBase + calculations.extraServiceBase).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -891,18 +905,7 @@ const BillingPage = () => {
                       <span className="w-6 h-6 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center text-xs"><FiPackage /></span>
                       Parts
                     </h4>
-                    <label className="flex items-center gap-2.5 cursor-pointer mb-3 p-2.5 rounded-xl border border-dashed border-orange-200 bg-orange-50/50 hover:bg-orange-50 transition-colors">
-                      <div className="relative">
-                        <input type="checkbox" checked={applyPartsGST} onChange={e => setApplyPartsGST(e.target.checked)} className="sr-only" />
-                        <div className={`w-10 h-5 rounded-full transition-colors duration-200 ${applyPartsGST ? 'bg-orange-500' : 'bg-gray-300'}`}>
-                          <div className={`w-4 h-4 bg-white rounded-full shadow-sm absolute top-0.5 transition-all duration-200 ${applyPartsGST ? 'left-5' : 'left-0.5'}`} />
-                        </div>
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs font-bold text-gray-800">Apply Parts GST ({calculations.partsGstPct}%)</p>
-                        <p className="text-[10px] text-gray-400">{applyPartsGST ? `GST included: ₹${calculations.totalPartsGST.toFixed(2)}` : 'GST not charged on parts'}</p>
-                      </div>
-                    </label>
+                    {/* Parts GST Toggle Hidden */}
                     <div className="space-y-2 text-sm pl-2">
                       {selectedParts.map(p => <div key={p.catalogId} className="flex justify-between text-gray-600"><span>{p.name} x {p.quantity}</span><span>₹{(p.price * p.quantity).toFixed(2)}</span></div>)}
                       {customItems.map((c, i) => (
@@ -914,29 +917,14 @@ const BillingPage = () => {
                           <span>₹{(c.price * c.quantity).toFixed(2)}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between text-xs text-gray-500 border-t border-dashed border-gray-100 pt-1 mt-1">
-                        <span>Parts GST ({calculations.partsGstPct}%)</span>
-                        <span>₹{calculations.totalPartsGST.toFixed(2)}</span>
-                      </div>
                       <div className="flex justify-between font-bold text-gray-800 pt-1">
                         <span>Total Parts</span>
-                        <span>₹{(calculations.partsBase + calculations.totalPartsGST).toFixed(2)}</span>
+                        <span>₹{(calculations.partsBase).toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
                 )}
-                {job.visitingCharges > 0 && (
-                  <div>
-                    <h4 className="font-bold text-gray-900 flex items-center gap-2 mb-2 pb-2 border-b border-gray-100">
-                      <span className="w-6 h-6 rounded-full bg-gray-50 text-gray-600 flex items-center justify-center text-xs"><FiClock /></span>
-                      Visiting Charges
-                    </h4>
-                    <div className="flex justify-between text-sm pl-2 font-bold text-gray-800">
-                      <span>Visiting Price</span>
-                      <span>₹{Number(job.visitingCharges).toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
+                {/* Visiting Charges Hidden */}
                 {transportCharges > 0 && (
                   <div>
                     <h4 className="font-bold text-gray-900 flex items-center gap-2 mb-2 pb-2 border-b border-gray-100">
@@ -947,6 +935,15 @@ const BillingPage = () => {
                       <span>Transport Price</span>
                       <span>₹{Number(transportCharges).toFixed(2)}</span>
                     </div>
+                  </div>
+                )}
+                {calculations.isAlreadyPaid && (
+                  <div className="bg-emerald-50/50 p-4 rounded-2xl border border-dashed border-emerald-200">
+                    <div className="flex justify-between text-sm font-bold text-emerald-700">
+                      <span>Already Paid Online</span>
+                      <span>-₹{calculations.prepaidAmount.toFixed(2)}</span>
+                    </div>
+                    <p className="text-[10px] text-emerald-600 mt-1">This amount was collected during booking.</p>
                   </div>
                 )}
                 {(paymentMode && job.status === 'completed') && (
